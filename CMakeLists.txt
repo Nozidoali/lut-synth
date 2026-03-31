@@ -38,6 +38,8 @@ add_library(lut-synth STATIC
   src/lut-synth/approximate/resynthesis/integer-estimator.cpp
   src/lut-synth/approximate/resynthesis/miter-estimator.cpp
   src/lut-synth/approximate/resynthesis/tt-ops.cpp
+  src/lut-synth/approximate/tt-approximation/anf-data.cpp
+  src/lut-synth/approximate/tt-approximation/ilp-common.cpp
   src/lut-synth/approximate/tt-approximation/tt-approximation.cpp
   src/lut-synth/approximate/tt-approximation/bounds.cpp
   src/lut-synth/approximate/tt-approximation/exact.cpp
