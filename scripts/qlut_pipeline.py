@@ -10,8 +10,8 @@ from typing import Any
 import numpy as np
 
 _project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_project_root / "approx_qlut_simulation"))
-sys.path.insert(0, str(_project_root / "qlut-benchmarks" / "src"))
+sys.path.insert(0, str(_project_root / "third-party" / "approx_qlut_simulation"))
+sys.path.insert(0, str(_project_root / "third-party" / "qlut-benchmarks" / "src"))
 
 from decode import (
     compute_tt_bitsizes,

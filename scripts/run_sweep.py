@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 
 _project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_project_root / "pipeline"))
+sys.path.insert(0, str(_project_root / "scripts"))
 
 from qlut_pipeline import (
     _NumpyEncoder,
