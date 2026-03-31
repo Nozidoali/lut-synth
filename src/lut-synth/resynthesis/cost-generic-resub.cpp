@@ -350,12 +350,4 @@ CostGenericResubResult cost_generic_resub_mc(xag_network const& ntk,
     return CostGenericResubResult{result, stats};
 }
 
-xag_network cost_generic_resub_mc(xag_network const& ntk,
-                                  CostGenericResubParams const& ps,
-                                  CostGenericResubStats* pst) {
-    CostGenericResubResult result = cost_generic_resub_mc(ntk, ps);
-    if (pst) *pst = result.stats;
-    return result.network;
-}
-
 }  // namespace lut_synth

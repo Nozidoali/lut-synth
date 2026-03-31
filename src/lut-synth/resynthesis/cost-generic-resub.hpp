@@ -35,17 +35,4 @@ struct CostGenericResubResult {
 CostGenericResubResult cost_generic_resub_mc(mockturtle::xag_network const& ntk,
                                               CostGenericResubParams const& ps = {});
 
-/*! \brief Cost-generic resubstitution with out-parameter (deprecated).
- *
- *  \deprecated Use cost_generic_resub_mc() returning CostGenericResubResult instead.
- *  \param ntk Input XAG network
- *  \param ps Resubstitution parameters
- *  \param pst Output statistics
- *  \return Optimized XAG network
- */
-[[deprecated("Use cost_generic_resub_mc() returning CostGenericResubResult instead")]]
-mockturtle::xag_network cost_generic_resub_mc(mockturtle::xag_network const& ntk,
-                                              CostGenericResubParams const& ps,
-                                              CostGenericResubStats* pst);
-
 }  // namespace lut_synth

@@ -221,12 +221,4 @@ ResubALSResult resubals(mockturtle::xag_network const& ntk,
     return ResubALSResult{state.ntk, stats};
 }
 
-mockturtle::xag_network resubals(mockturtle::xag_network const& ntk,
-                                  ResubALSParams const& params,
-                                  ResubALSStats* stats) {
-    ResubALSResult result = resubals(ntk, params);
-    if (stats) *stats = result.stats;
-    return result.network;
-}
-
 } // namespace lut_synth::approximate

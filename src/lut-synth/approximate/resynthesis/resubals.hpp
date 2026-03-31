@@ -65,17 +65,4 @@ struct ResubALSResult {
 ResubALSResult resubals(mockturtle::xag_network const& ntk,
                         ResubALSParams const& params = {});
 
-/*! \brief ResubALS with out-parameter (deprecated).
- *
- *  \deprecated Use resubals() returning ResubALSResult instead.
- *  \param ntk Input XAG network
- *  \param params Algorithm parameters
- *  \param stats Output statistics
- *  \return Approximated XAG network
- */
-[[deprecated("Use resubals() returning ResubALSResult instead")]]
-mockturtle::xag_network resubals(mockturtle::xag_network const& ntk,
-                                  ResubALSParams const& params,
-                                  ResubALSStats* stats);
-
 } // namespace lut_synth::approximate
