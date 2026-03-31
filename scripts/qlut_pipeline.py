@@ -383,11 +383,14 @@ def approximate_qluts(
             expanded: list[int] = []
             lock_indices: list[int] = []
             bit_offset = 0
+            num_regs = len(target_bw)
             for r, bw in enumerate(target_bw):
                 n_cols = shapes[r][1] if r < len(shapes) and len(shapes[r]) > 1 else 1
+                is_last_reg = (r == num_regs - 1)
                 for _ in range(n_cols):
-                    if bw == 1:
-                        lock_indices.append(bit_offset)
+                    if not is_last_reg:
+                        for j in range(bw):
+                            lock_indices.append(bit_offset + j)
                     bit_offset += bw
                 expanded.extend([bw] * n_cols)
             node_bitsizes[node["filename"]] = expanded
