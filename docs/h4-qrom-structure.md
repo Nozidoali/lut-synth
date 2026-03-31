@@ -1,0 +1,58 @@
+# H4 QROM Structure in PrepareTHC
+
+The PrepareTHC circuit for H4 (square hydrogen molecule, cc-pVTZ basis, nmo=56, thc_rank=56) uses two QROM nodes to implement alias sampling for quantum state preparation.
+
+## Alias Sampling Overview
+
+The THC decomposition produces coefficients: a 56x56 symmetric matrix `zeta` (pair interactions) and a 28-element vector `t_l` (one-body eigenvalues). Flattened, this gives ~1652 coefficients with varying magnitudes and signs.
+
+The quantum algorithm prepares a state whose amplitudes encode these coefficients. Alias sampling does this by mapping each coefficient index to a lookup table entry containing: the coefficient's sign, a keep probability, and an alias partner to redirect to when the "keep" path is not taken.
+
+## QROAMClean_0 (Forward State Preparation)
+
+**11 input bits** select one of 2^11 = 2048 possible entries.
+
+These address the flattened Hamiltonian coefficients:
+- Indices 0-1595: upper triangle of the `zeta` matrix (56x56 symmetric)
+- Indices 1596-1623: `t_l` eigenvalues (28 spatial orbitals)
+- Plus padding: **1652 valid entries**, remaining 396 are don't-cares
+
+Input address `s` means "give me the alias sampling data for coefficient s."
+
+**20 output bits** across 5 registers `[1, 1, 6, 6, 6]`:
+
+| Register | Bits | Meaning |
+|----------|------|---------|
+| theta | 1 | Sign of coefficient s |
+| alt_theta | 1 | Sign of the alias partner |
+| alt_mu | 6 | Row index of alias partner |
+| alt_nu | 6 | Column index of alias partner |
+| keep | 6 | Keep probability (0-63 out of 2^6) |
+
+## QROM_1 (Adjoint / Uncomputation)
+
+**8 input bits** select one of 2^8 = 256 possible entries.
+
+Each address selects a **batch of 8 coefficients** simultaneously: ceil(1652/8) = 207 valid rows, 49 don't-cares. Input address `r` returns alias data for coefficients `8r, 8r+1, ..., 8r+7` all at once.
+
+**160 output bits** as 8 parallel copies of the same 5 registers:
+
+| Group | Bits | Content |
+|-------|------|---------|
+| theta_0 .. theta_7 | 8 x 1b = 8b | Signs for 8 coefficients |
+| alt_theta_0 .. alt_theta_7 | 8 x 1b = 8b | Alias partner signs |
+| alt_mu_0 .. alt_mu_7 | 8 x 6b = 48b | Alias row indices |
+| alt_nu_0 .. alt_nu_7 | 8 x 6b = 48b | Alias column indices |
+| keep_0 .. keep_7 | 8 x 6b = 48b | Keep probabilities |
+
+The 8-way parallelism is a circuit optimization: instead of 1652 sequential lookups, 207 lookups each return 8 coefficients.
+
+## Summary
+
+| | QROAMClean_0 | QROM_1 |
+|---|---|---|
+| Inputs | 11 bits (1 coefficient) | 8 bits (batch of 8) |
+| Care entries | 1652 / 2048 | 207 / 256 |
+| Outputs | 20 bits (1 copy of 5 regs) | 160 bits (8 copies of 5 regs) |
+| Coefficients served | 1652 | 207 x 8 = 1656 |
+| Direction | Forward (state prep) | Adjoint (uncomputation) |
