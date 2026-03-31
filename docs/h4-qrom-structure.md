@@ -94,24 +94,33 @@ care    = N_coeff
 
 QROM dimensions (batched adjoint):
 
+The QROM batches multiple coefficients into each row. The **columns** value is
+the parallelism factor (how many coefficients per lookup), not the number of
+truth table inputs. It multiplies the output width:
+
 ```
-columns = ceil(N_coeff / 2^inputs_QROM)
-rows    = ceil(N_coeff / columns)
-outputs = columns * (1 + 1 + bw_mu + bw_nu + num_bits_state_prep)
+bw_per_coeff = 1 + 1 + bw_mu + bw_nu + num_bits_state_prep
+columns      = ceil(N_coeff / 2^inputs_QROM)     (coefficients per row)
+rows         = ceil(N_coeff / columns)            (care entries in TT)
+inputs (PIs) = ceil(log2(rows))                   (address bits for rows)
+outputs(POs) = columns * bw_per_coeff             (all columns concatenated)
 ```
+
+For example with rank=56, bits=6: each row stores 8 coefficients of 20 bits
+each, giving 160 output bits. The 8 input bits address 207 valid rows.
 
 ### Effect of Rank (H4, nmo=56, bits=6)
 
 Rank drives the number of coefficients quadratically and the index bitwidths logarithmically.
 
-| rank | N_coeff | QROAMClean inputs | QROAMClean outputs | QROM columns | QROM outputs |
-| ---- | ------- | ----------------- | ------------------ | ------------ | ------------ |
-| 4    | 14      | 4                 | 11                 | 1            | 11           |
-| 10   | 59      | 6                 | 16                 | 2            | 32           |
-| 56   | 1,652   | 11                | 20                 | 8            | 160          |
-| 100  | 5,106   | 13                | 21                 | 16           | 336          |
-| 200  | 20,156  | 15                | 22                 | 32           | 704          |
-| 400  | 80,256  | 17                | 23                 | 64           | 1,472        |
+| rank | N_coeff | QROAMClean inputs | QROAMClean outputs | QROM columns | QROM inputs | QROM outputs |
+| ---- | ------- | ----------------- | ------------------ | ------------ | ----------- | ------------ |
+| 4    | 14      | 4                 | 11                 | 1            | 4           | 11           |
+| 10   | 59      | 6                 | 16                 | 2            | 5           | 32           |
+| 56   | 1,652   | 11                | 20                 | 8            | 8           | 160          |
+| 100  | 5,106   | 13                | 21                 | 16           | 9           | 336          |
+| 200  | 20,156  | 15                | 22                 | 32           | 10          | 704          |
+| 400  | 80,256  | 17                | 23                 | 64           | 11          | 1,472        |
 
 ### Effect of Precision (H4, nmo=56, rank=56)
 
