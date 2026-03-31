@@ -1,0 +1,9 @@
+[submodule "lib/mockturtle"]
+	path = lib/mockturtle
+	url = https://github.com/lsils/mockturtle.git
+[submodule "approx_qlut_simulation"]
+	path = approx_qlut_simulation
+	url = git@github.com:WanHsuanLin/approx_qlut_simulation.git
+[submodule "qlut-benchmarks"]
+	path = qlut-benchmarks
+	url = git@github.com:Nozidoali/qlut-benchmarks.git

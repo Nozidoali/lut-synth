@@ -1,0 +1,21 @@
+# Build
+build/
+
+# IDE / editor
+.cache/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Results
+results/

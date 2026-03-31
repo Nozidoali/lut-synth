@@ -1,0 +1,88 @@
+#include "lut-synth/approximate/tt-approximation/tt-approximation.hpp"
+#include "lut-synth/error.hpp"
+#include "lut-synth/truth-table.hpp"
+
+#include <cstdlib>
+#include <iostream>
+#include <string>
+
+namespace {
+
+struct Args {
+    std::string input;
+    std::string output;
+    double error_bound = 1.0;
+    double time_limit = 60.0;
+    bool verbose = false;
+};
+
+Args parse_args(int argc, char* argv[]) {
+    Args args;
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if ((arg == "--input" || arg == "-i") && i + 1 < argc) {
+            args.input = argv[++i];
+        } else if ((arg == "--output" || arg == "-o") && i + 1 < argc) {
+            args.output = argv[++i];
+        } else if ((arg == "--error-bound" || arg == "-e") && i + 1 < argc) {
+            args.error_bound = std::stod(argv[++i]);
+        } else if ((arg == "--time-limit" || arg == "-t") && i + 1 < argc) {
+            args.time_limit = std::stod(argv[++i]);
+        } else if (arg == "--verbose" || arg == "-v") {
+            args.verbose = true;
+        }
+    }
+    return args;
+}
+
+void print_usage() {
+    std::cerr << "Usage: approx-tt --input <file> --output <file> "
+              << "[--error-bound <val>] [--time-limit <sec>] [--verbose]\n";
+}
+
+} // namespace
+
+int main(int argc, char* argv[]) {
+    Args args = parse_args(argc, argv);
+    if (args.input.empty() || args.output.empty()) {
+        print_usage();
+        return 1;
+    }
+
+    lut_synth::TruthTable tt;
+    tt.read(args.input);
+
+    lut_synth::approximate::TTApproxParams params;
+    params.error_bound = args.error_bound;
+    params.time_limit = args.time_limit;
+    params.verbose = args.verbose;
+
+    lut_synth::approximate::TTApproxResult result =
+        lut_synth::approximate::approximate_truth_table_ilp(tt.get_tts(), params);
+
+    if (!result.solved) {
+        tt.write(args.output);
+        std::cout << "{\"solved\":false}\n";
+        return 0;
+    }
+
+    lut_synth::TruthTable approx_tt(result.approx_tts);
+    approx_tt.write(args.output);
+
+    lut_synth::IntegerError error =
+        lut_synth::compute_integer_error(tt.get_tts(), result.approx_tts);
+
+    std::cout << "{"
+              << "\"solved\":true"
+              << ",\"bits_flipped\":" << result.bits_flipped
+              << ",\"worst_case_error\":" << error.worst_case
+              << ",\"weighted_mean_error\":" << error.weighted_mean
+              << ",\"error_rate\":" << error.error_rate
+              << ",\"monomials_before\":" << result.monomials_before
+              << ",\"monomials_after\":" << result.monomials_after
+              << ",\"ss_and_estimate\":" << result.ss_and_estimate
+              << ",\"ss_and_actual\":" << result.ss_and_actual
+              << "}\n";
+
+    return 0;
+}
