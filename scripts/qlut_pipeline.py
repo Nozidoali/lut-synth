@@ -372,6 +372,7 @@ def approximate_qluts(
 
     metadata_path = tt_dir / "extraction_metadata.json"
     node_bitsizes: dict[str, list[int]] = {}
+    skip_nodes: set[str] = set()
     if metadata_path.exists():
         with open(metadata_path) as f:
             meta = json.load(f)
@@ -383,12 +384,21 @@ def approximate_qluts(
                 n_cols = shapes[r][1] if r < len(shapes) and len(shapes[r]) > 1 else 1
                 expanded.extend([bw] * n_cols)
             node_bitsizes[node["filename"]] = expanded
+            if node.get("node_class") == "QROM":
+                skip_nodes.add(node["filename"])
 
     tt_files = sorted(tt_dir.glob("*.tt"))
     results = []
 
     for tt_file in tt_files:
         approx_file = approx_dir / tt_file.name
+
+        if tt_file.name in skip_nodes:
+            import shutil
+            shutil.copy2(tt_file, approx_file)
+            results.append({"solved": True, "bits_flipped": 0, "filename": tt_file.name})
+            continue
+
         cmd = [
             str(approx_tt_binary),
             "--input", str(tt_file),
