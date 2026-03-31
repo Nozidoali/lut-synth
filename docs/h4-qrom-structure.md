@@ -109,6 +109,23 @@ outputs(POs) = columns * bw_per_coeff             (all columns concatenated)
 For example with rank=56, bits=6: each row stores 8 coefficients of 20 bits
 each, giving 160 output bits. The 8 input bits address 207 valid rows.
 
+### Per-Register Bitwidths (H4, nmo=56)
+
+The QROAMClean output is split into 5 registers. Only `keep` is suitable for
+integer-distance approximation; the others are signs or matrix indices.
+
+| rank | alt_mu/nu bits | total locked bits | keep (p=6) | keep (p=10) | TT inputs | TT outputs (p=6) |
+| ---- | -------------- | ----------------- | ---------- | ----------- | --------- | ----------------- |
+| 4    | 2              | 6                 | 6          | 10          | 6         | 12                |
+| 10   | 4              | 10                | 6          | 10          | 7         | 16                |
+| 20   | 5              | 12                | 6          | 10          | 8         | 18                |
+| 56   | 6              | 14                | 6          | 10          | 11        | 20                |
+| 100  | 7              | 16                | 6          | 10          | 13        | 22                |
+| 200  | 8              | 18                | 6          | 10          | 15        | 24                |
+
+Formulas: `alt_mu = ceil(log2(rank))`, `locked = 2 + 2*alt_mu`,
+`inputs = ceil(log2(rank*(rank+1)/2 + nmo/2))`.
+
 ### Effect of Rank (H4, nmo=56, bits=6)
 
 Rank drives the number of coefficients quadratically and the index bitwidths logarithmically.
