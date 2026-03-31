@@ -370,6 +370,14 @@ def approximate_qluts(
     approx_dir = tt_dir / "approx"
     approx_dir.mkdir(parents=True, exist_ok=True)
 
+    metadata_path = tt_dir / "extraction_metadata.json"
+    node_bitsizes: dict[str, list[int]] = {}
+    if metadata_path.exists():
+        with open(metadata_path) as f:
+            meta = json.load(f)
+        for node in meta.get("nodes", []):
+            node_bitsizes[node["filename"]] = node.get("tt_bitsizes", [])
+
     tt_files = sorted(tt_dir.glob("*.tt"))
     results = []
 
@@ -382,6 +390,10 @@ def approximate_qluts(
             "--error-bound", str(error_bound),
             "--time-limit", str(time_limit),
         ]
+        bitsizes = node_bitsizes.get(tt_file.name, [])
+        if bitsizes:
+            cmd.extend(["--registers", ",".join(str(b) for b in bitsizes)])
+
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
             print(f"Warning: approx-tt failed on {tt_file.name}: {proc.stderr}")

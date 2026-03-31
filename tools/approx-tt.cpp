@@ -4,7 +4,9 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -13,6 +15,7 @@ struct Args {
     std::string output;
     double error_bound = 1.0;
     double time_limit = 60.0;
+    std::vector<uint32_t> registers;
     bool verbose = false;
 };
 
@@ -28,6 +31,14 @@ Args parse_args(int argc, char* argv[]) {
             args.error_bound = std::stod(argv[++i]);
         } else if ((arg == "--time-limit" || arg == "-t") && i + 1 < argc) {
             args.time_limit = std::stod(argv[++i]);
+        } else if (arg == "--registers" && i + 1 < argc) {
+            std::string val(argv[++i]);
+            std::istringstream ss(val);
+            std::string token;
+            while (std::getline(ss, token, ',')) {
+                args.registers.push_back(
+                    static_cast<uint32_t>(std::stoul(token)));
+            }
         } else if (arg == "--verbose" || arg == "-v") {
             args.verbose = true;
         }
@@ -37,7 +48,8 @@ Args parse_args(int argc, char* argv[]) {
 
 void print_usage() {
     std::cerr << "Usage: approx-tt --input <file> --output <file> "
-              << "[--error-bound <val>] [--time-limit <sec>] [--verbose]\n";
+              << "[--error-bound <val>] [--time-limit <sec>] "
+              << "[--registers 1,1,6,6,6] [--verbose]\n";
 }
 
 } // namespace
@@ -56,6 +68,7 @@ int main(int argc, char* argv[]) {
     params.error_bound = args.error_bound;
     params.time_limit = args.time_limit;
     params.verbose = args.verbose;
+    params.register_bitsizes = args.registers;
 
     lut_synth::approximate::TTApproxResult result =
         lut_synth::approximate::approximate_truth_table_ilp(tt.get_tts(), params);
