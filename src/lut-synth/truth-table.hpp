@@ -40,6 +40,10 @@ class TruthTable {
     /*! \brief Get off-set (0 entries). */
     std::vector<kitty::dynamic_truth_table> const &get_off_set() const { return off_set_; }
 
+    /*! \brief Create new TruthTable with modified values, preserving don't-cares. */
+    TruthTable with_approximated_tts(
+        std::vector<kitty::dynamic_truth_table> const& approx_tts) const;
+
     bool empty() const { return tts_.empty(); }
 
     /*! \brief Return number of outputs. */

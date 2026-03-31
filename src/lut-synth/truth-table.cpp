@@ -93,13 +93,58 @@ void TruthTable::write(const std::string &filename) const {
         throw std::runtime_error("failed to open file for writing: " + filename);
     }
 
-    for (auto const &tt : tts_) {
-        std::string binary_str;
-        for (uint64_t i = 0; i < (1ULL << tt.num_vars()); ++i) {
-            binary_str += kitty::get_bit(tt, i) ? '1' : '0';
+    for (size_t idx = 0; idx < tts_.size(); ++idx) {
+        uint64_t num_bits = 1ULL << tts_[idx].num_vars();
+        std::string row;
+        row.reserve(num_bits);
+        for (uint64_t i = 0; i < num_bits; ++i) {
+            if (has_dont_cares_ &&
+                !kitty::get_bit(on_set_[idx], i) &&
+                !kitty::get_bit(off_set_[idx], i)) {
+                row += 'X';
+            } else {
+                row += kitty::get_bit(tts_[idx], i) ? '1' : '0';
+            }
         }
-        out << binary_str << "\n";
+        out << row << "\n";
     }
+}
+
+TruthTable TruthTable::with_approximated_tts(
+    std::vector<kitty::dynamic_truth_table> const& approx_tts) const {
+    assert(approx_tts.size() == tts_.size());
+
+    if (!has_dont_cares_) {
+        return TruthTable(approx_tts);
+    }
+
+    TruthTable result;
+    result.tts_ = approx_tts;
+    result.has_dont_cares_ = true;
+    result.on_set_.reserve(approx_tts.size());
+    result.off_set_.reserve(approx_tts.size());
+
+    for (size_t idx = 0; idx < approx_tts.size(); ++idx) {
+        uint64_t num_bits = 1ULL << approx_tts[idx].num_vars();
+        kitty::dynamic_truth_table on(approx_tts[idx].num_vars());
+        kitty::dynamic_truth_table off(approx_tts[idx].num_vars());
+        for (uint64_t i = 0; i < num_bits; ++i) {
+            bool is_care = kitty::get_bit(on_set_[idx], i) ||
+                           kitty::get_bit(off_set_[idx], i);
+            if (!is_care) {
+                continue;
+            }
+            if (kitty::get_bit(approx_tts[idx], i)) {
+                kitty::set_bit(on, i);
+            } else {
+                kitty::set_bit(off, i);
+            }
+        }
+        result.on_set_.push_back(on);
+        result.off_set_.push_back(off);
+    }
+
+    return result;
 }
 
 void TruthTable::print_stats() const {

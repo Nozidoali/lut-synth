@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    lut_synth::TruthTable approx_tt(result.approx_tts);
+    lut_synth::TruthTable approx_tt = tt.with_approximated_tts(result.approx_tts);
     approx_tt.write(args.output);
 
     lut_synth::IntegerError error =
