@@ -26,6 +26,7 @@ add_library(lut-synth STATIC
   src/lut-synth/resynthesis/xag-resynthesizer.cpp
   src/lut-synth/resynthesis/v3-resynthesizer.cpp
   src/lut-synth/resynthesis/cost-generic-resub.cpp
+  src/lut-synth/resynthesis/resub-patterns.cpp
   src/lut-synth/resynthesis/resynthesis-util.cpp
   src/lut-synth/resynthesis/resynthesis-v3.cpp
   src/lut-synth/approximate/resynthesis/resubals.cpp
