@@ -378,13 +378,13 @@ def approximate_qluts(
         with open(metadata_path) as f:
             meta = json.load(f)
         for node in meta.get("nodes", []):
-            target_bw = node.get("target_bitsizes", [])
+            tt_bw = node.get("tt_bitsizes", node.get("target_bitsizes", []))
             shapes = node.get("data_shapes", [])
             expanded: list[int] = []
             lock_indices: list[int] = []
             bit_offset = 0
-            num_regs = len(target_bw)
-            for r, bw in enumerate(target_bw):
+            num_regs = len(tt_bw)
+            for r, bw in enumerate(tt_bw):
                 n_cols = shapes[r][1] if r < len(shapes) and len(shapes[r]) > 1 else 1
                 is_last_reg = (r == num_regs - 1)
                 for _ in range(n_cols):
