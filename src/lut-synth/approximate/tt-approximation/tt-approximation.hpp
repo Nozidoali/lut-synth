@@ -25,6 +25,7 @@ struct TTApproxParams {
     TTApproxObjective objective = TTApproxObjective::SSCofactor; /*!< Objective type */
     int fixed_k = -1;                   /*!< Fix k for cofactor split (-1 = try all) */
     std::vector<uint32_t> register_bitsizes; /*!< Per-register bitwidths (empty = single integer) */
+    std::vector<bool> locked_outputs;        /*!< Output bits locked from flipping (empty = none locked) */
 };
 
 /*! \brief Statistics from heuristic variable pruning. */

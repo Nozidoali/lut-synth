@@ -16,6 +16,7 @@ struct Args {
     double error_bound = 1.0;
     double time_limit = 60.0;
     std::vector<uint32_t> registers;
+    std::vector<uint32_t> lock_indices;
     bool verbose = false;
 };
 
@@ -39,6 +40,14 @@ Args parse_args(int argc, char* argv[]) {
                 args.registers.push_back(
                     static_cast<uint32_t>(std::stoul(token)));
             }
+        } else if (arg == "--lock" && i + 1 < argc) {
+            std::string val(argv[++i]);
+            std::istringstream ss2(val);
+            std::string token;
+            while (std::getline(ss2, token, ',')) {
+                args.lock_indices.push_back(
+                    static_cast<uint32_t>(std::stoul(token)));
+            }
         } else if (arg == "--verbose" || arg == "-v") {
             args.verbose = true;
         }
@@ -49,7 +58,7 @@ Args parse_args(int argc, char* argv[]) {
 void print_usage() {
     std::cerr << "Usage: approx-tt --input <file> --output <file> "
               << "[--error-bound <val>] [--time-limit <sec>] "
-              << "[--registers 1,1,6,6,6] [--verbose]\n";
+              << "[--registers 1,1,6,6,6] [--lock 0,1] [--verbose]\n";
 }
 
 } // namespace
@@ -69,6 +78,15 @@ int main(int argc, char* argv[]) {
     params.time_limit = args.time_limit;
     params.verbose = args.verbose;
     params.register_bitsizes = args.registers;
+    if (!args.lock_indices.empty()) {
+        uint32_t num_outputs = static_cast<uint32_t>(tt.get_tts().size());
+        params.locked_outputs.assign(num_outputs, false);
+        for (uint32_t idx : args.lock_indices) {
+            if (idx < num_outputs) {
+                params.locked_outputs[idx] = true;
+            }
+        }
+    }
 
     lut_synth::approximate::TTApproxResult result =
         lut_synth::approximate::approximate_truth_table_ilp(tt.get_tts(), params);

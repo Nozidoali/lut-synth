@@ -372,6 +372,7 @@ def approximate_qluts(
 
     metadata_path = tt_dir / "extraction_metadata.json"
     node_bitsizes: dict[str, list[int]] = {}
+    node_lock_indices: dict[str, list[int]] = {}
     skip_nodes: set[str] = set()
     if metadata_path.exists():
         with open(metadata_path) as f:
@@ -380,10 +381,17 @@ def approximate_qluts(
             target_bw = node.get("target_bitsizes", [])
             shapes = node.get("data_shapes", [])
             expanded: list[int] = []
+            lock_indices: list[int] = []
+            bit_offset = 0
             for r, bw in enumerate(target_bw):
                 n_cols = shapes[r][1] if r < len(shapes) and len(shapes[r]) > 1 else 1
+                for _ in range(n_cols):
+                    if bw == 1:
+                        lock_indices.append(bit_offset)
+                    bit_offset += bw
                 expanded.extend([bw] * n_cols)
             node_bitsizes[node["filename"]] = expanded
+            node_lock_indices[node["filename"]] = lock_indices
             if node.get("node_class") == "QROM":
                 skip_nodes.add(node["filename"])
 
@@ -409,6 +417,9 @@ def approximate_qluts(
         bitsizes = node_bitsizes.get(tt_file.name, [])
         if bitsizes:
             cmd.extend(["--registers", ",".join(str(b) for b in bitsizes)])
+        lock = node_lock_indices.get(tt_file.name, [])
+        if lock:
+            cmd.extend(["--lock", ",".join(str(i) for i in lock)])
 
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:

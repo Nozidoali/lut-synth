@@ -63,9 +63,10 @@ TTApproxResult solve_ilp(
 
     std::vector<std::vector<GRBVar>> d_vars(m);
     for (uint32_t i = 0; i < m; ++i) {
+        bool locked = i < params.locked_outputs.size() && params.locked_outputs[i];
         d_vars[i].reserve(num_minterms);
         for (uint32_t x = 0; x < num_minterms; ++x) {
-            double ub = pmask.flip_pruned[i][x] ? 0.0 : 1.0;
+            double ub = (locked || pmask.flip_pruned[i][x]) ? 0.0 : 1.0;
             d_vars[i].push_back(model.addVar(0.0, ub, 0.0, GRB_BINARY,
                 "d_" + std::to_string(i) + "_" + std::to_string(x)));
         }
@@ -190,10 +191,11 @@ TTApproxResult solve_ilp_ss_for_k(
 
     std::vector<std::vector<GRBVar>> d_vars(m);
     for (uint32_t i = 0; i < m; ++i) {
+        bool locked = i < params.locked_outputs.size() && params.locked_outputs[i];
         d_vars[i].reserve(num_minterms);
         for (uint32_t x = 0; x < num_minterms; ++x) {
-            double ub = 1.0;
-            if (params.enable_pruning) {
+            double ub = locked ? 0.0 : 1.0;
+            if (!locked && params.enable_pruning) {
                 double bit_weight = bit_weight_for_output(i, m, params.register_bitsizes);
                 if (weights[x] * bit_weight > params.error_bound) {
                     ub = 0.0;
