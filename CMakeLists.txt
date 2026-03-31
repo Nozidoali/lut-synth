@@ -36,6 +36,7 @@ add_library(lut-synth STATIC
   src/lut-synth/approximate/resynthesis/simulation-estimator.cpp
   src/lut-synth/approximate/resynthesis/vecbee-estimator.cpp
   src/lut-synth/approximate/resynthesis/integer-estimator.cpp
+  src/lut-synth/approximate/resynthesis/miter-builder.cpp
   src/lut-synth/approximate/resynthesis/miter-estimator.cpp
   src/lut-synth/approximate/resynthesis/tt-ops.cpp
   src/lut-synth/approximate/tt-approximation/anf-data.cpp

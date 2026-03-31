@@ -9,6 +9,7 @@
 #include <mockturtle/utils/node_map.hpp>
 
 #include "lut-synth/approximate/resynthesis/error-estimator.hpp"
+#include "lut-synth/approximate/resynthesis/miter-builder.hpp"
 
 namespace lut_synth::approximate {
 
@@ -115,28 +116,8 @@ public:
     void update_network(Ntk const& ntk) override { rebuild_miter(ntk); }
 
 private:
-    /*! \brief Build miter circuit from original and approximate networks. */
-    void build_miter();
-
-    /*! \brief Simulate miter circuit with random patterns. */
-    void simulate_miter();
-
-    /*! \brief Compute all Boolean differences. */
-    void compute_boolean_differences();
-
-    /*! \brief Compute Boolean difference from cuts to nodes. */
-    void compute_bd_cut_to_node();
-
-    /*! \brief Compute Boolean difference from POs to nodes.
-     *
-     *  For each PO k and node n, computes bd_po_to_node[k][n] which
-     *  indicates patterns where changing n affects output k.
-     */
-    void compute_bd_po_to_node();
-
     /*! \brief Compute candidate truth table for a LAC. */
     TT compute_candidate_tt(LAC const& lac) const;
-
 
     uint32_t num_patterns_;              /*!< Number of simulation patterns */
     uint32_t seed_;                      /*!< Random seed */
@@ -147,16 +128,10 @@ private:
 
     Ntk const* original_ntk_;            /*!< Reference to original network */
     Ntk approximate_ntk_;                /*!< Current approximate network */
-    Ntk miter_ntk_;                      /*!< Miter circuit */
-
-    std::vector<node> app_to_miter_;     /*!< Map from approximate to miter nodes */
-    std::vector<node> miter_to_app_;     /*!< Map from miter to approximate nodes */
 
     std::unique_ptr<mockturtle::unordered_node_map<TT, Ntk>> app_tts_;   /*!< Approximate network TTs */
-    std::unique_ptr<mockturtle::unordered_node_map<TT, Ntk>> miter_tts_; /*!< Miter network TTs */
 
-    std::vector<TT> miter_po_tts_;              /*!< Miter PO truth tables (current error) */
-    std::vector<std::vector<TT>> bd_po_to_node_; /*!< Boolean diff: bd[k][n] = patterns where n affects PO k */
+    MiterBuilder builder_;               /*!< Miter construction and Boolean differences */
 };
 
 } // namespace lut_synth::approximate
