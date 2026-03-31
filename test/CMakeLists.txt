@@ -1,4 +1,4 @@
-set(CATCH2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../lib/mockturtle/test/catch2")
+set(CATCH2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third-party/mockturtle/test/catch2")
 
 function(add_lut_synth_test name source)
   add_executable(${name} ${source})

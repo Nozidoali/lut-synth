@@ -376,7 +376,13 @@ def approximate_qluts(
         with open(metadata_path) as f:
             meta = json.load(f)
         for node in meta.get("nodes", []):
-            node_bitsizes[node["filename"]] = node.get("tt_bitsizes", [])
+            target_bw = node.get("target_bitsizes", [])
+            shapes = node.get("data_shapes", [])
+            expanded: list[int] = []
+            for r, bw in enumerate(target_bw):
+                n_cols = shapes[r][1] if r < len(shapes) and len(shapes[r]) > 1 else 1
+                expanded.extend([bw] * n_cols)
+            node_bitsizes[node["filename"]] = expanded
 
     tt_files = sorted(tt_dir.glob("*.tt"))
     results = []
