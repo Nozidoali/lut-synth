@@ -29,31 +29,22 @@ struct ReshapedDC {
 
 ReshapedDC reshape_dc(std::vector<kitty::dynamic_truth_table> const &on,
                       std::vector<kitty::dynamic_truth_table> const &off, int k, int num_vars) {
-    const int m = static_cast<int>(on.size());
-    const int remaining_vars = num_vars - k;
-    const int num_cofactors = 1 << k;
+    int const m = static_cast<int>(on.size());
+    int const remaining_vars = num_vars - k;
+    int const num_cofactors = 1 << k;
 
     ReshapedDC reshaped;
-    reshaped.on.reserve(num_cofactors * m);
-    reshaped.off.reserve(num_cofactors * m);
-    for (int i = 0; i < num_cofactors * m; ++i) {
-        reshaped.on.push_back(kitty::dynamic_truth_table(remaining_vars));
-        reshaped.off.push_back(kitty::dynamic_truth_table(remaining_vars));
-    }
+    reshaped.on.resize(num_cofactors * m, kitty::dynamic_truth_table(remaining_vars));
+    reshaped.off.resize(num_cofactors * m, kitty::dynamic_truth_table(remaining_vars));
 
-    for (int cof_idx = 0; cof_idx < num_cofactors; ++cof_idx) {
-        for (int assignment = 0; assignment < (1 << remaining_vars); ++assignment) {
-            const int original_index = cof_idx | (assignment << k);
-            for (int output = 0; output < m; ++output) {
-                if (kitty::get_bit(on[output], original_index)) {
-                    kitty::set_bit(reshaped.on[cof_idx * m + output], assignment);
-                }
-                if (kitty::get_bit(off[output], original_index)) {
-                    kitty::set_bit(reshaped.off[cof_idx * m + output], assignment);
-                }
-            }
+    ss_detail::for_each_cofactor_entry(k, num_vars, m, [&](int cof_idx, int assignment, int output, int original_index) {
+        if (kitty::get_bit(on[output], original_index)) {
+            kitty::set_bit(reshaped.on[cof_idx * m + output], assignment);
         }
-    }
+        if (kitty::get_bit(off[output], original_index)) {
+            kitty::set_bit(reshaped.off[cof_idx * m + output], assignment);
+        }
+    });
 
     return reshaped;
 }

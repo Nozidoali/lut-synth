@@ -24,26 +24,18 @@ struct ReshapedTT {
 };
 
 ReshapedTT reshape(std::vector<kitty::dynamic_truth_table> const &tts, int k, int num_vars) {
-    const int m = static_cast<int>(tts.size());
-    const int remaining_vars = num_vars - k;
-    const int num_cofactors = 1 << k;
+    int const m = static_cast<int>(tts.size());
+    int const remaining_vars = num_vars - k;
+    int const num_cofactors = 1 << k;
 
     ReshapedTT reshaped;
-    reshaped.tables.reserve(num_cofactors * m);
-    for (int i = 0; i < num_cofactors * m; ++i) {
-        reshaped.tables.push_back(kitty::dynamic_truth_table(remaining_vars));
-    }
+    reshaped.tables.resize(num_cofactors * m, kitty::dynamic_truth_table(remaining_vars));
 
-    for (int cof_idx = 0; cof_idx < num_cofactors; ++cof_idx) {
-        for (int assignment = 0; assignment < (1 << remaining_vars); ++assignment) {
-            const int original_index = cof_idx | (assignment << k);
-            for (int output = 0; output < m; ++output) {
-                if (kitty::get_bit(tts[output], original_index)) {
-                    kitty::set_bit(reshaped.tables[cof_idx * m + output], assignment);
-                }
-            }
+    ss_detail::for_each_cofactor_entry(k, num_vars, m, [&](int cof_idx, int assignment, int output, int original_index) {
+        if (kitty::get_bit(tts[output], original_index)) {
+            kitty::set_bit(reshaped.tables[cof_idx * m + output], assignment);
         }
-    }
+    });
 
     return reshaped;
 }

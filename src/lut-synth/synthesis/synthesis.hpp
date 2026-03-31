@@ -123,6 +123,21 @@ mockturtle::xag_network synthesize_selectswap(std::vector<kitty::dynamic_truth_t
 /*! \brief Internal helpers for sum-of-products synthesis. */
 namespace ss_detail {
 
+/*! \brief Iterate over cofactor entries for k-variable Shannon split. */
+template <typename Fn>
+void for_each_cofactor_entry(int k, int num_vars, int m, Fn&& fn) {
+    int const remaining_vars = num_vars - k;
+    int const num_cofactors = 1 << k;
+    for (int cof_idx = 0; cof_idx < num_cofactors; ++cof_idx) {
+        for (int assignment = 0; assignment < (1 << remaining_vars); ++assignment) {
+            int const original_index = cof_idx | (assignment << k);
+            for (int output = 0; output < m; ++output) {
+                fn(cof_idx, assignment, output, original_index);
+            }
+        }
+    }
+}
+
 /*! \brief Convert truth table to algebraic normal form. */
 kitty::dynamic_truth_table to_anf(kitty::dynamic_truth_table const &tt);
 
