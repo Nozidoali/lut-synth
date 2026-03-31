@@ -6,8 +6,8 @@ runs error-bound sweeps for each (rank, bits) combination, and produces
 a comparison plot of naive quantization vs ILP approximation.
 
 Usage:
-    python pipeline/plot_rank_sweep.py           # full run
-    python pipeline/plot_rank_sweep.py --plot-only  # plot existing results
+    python scripts/plot_rank_sweep.py           # full run
+    python scripts/plot_rank_sweep.py --plot-only  # plot existing results
 """
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ project(lut-synth LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(lib/mockturtle EXCLUDE_FROM_ALL)
+add_subdirectory(third-party/mockturtle EXCLUDE_FROM_ALL)
 
 add_library(lut-synth STATIC
   src/lut-synth/truth-table.cpp
