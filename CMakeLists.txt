@@ -13,12 +13,7 @@ add_library(lut-synth STATIC
   src/lut-synth/synthesis/synthesis.cpp
   src/lut-synth/synthesis/xag-synthesizer.cpp
   src/lut-synth/synthesis/ss-synthesizer.cpp
-  src/lut-synth/synthesis/davio-synthesizer.cpp
-  src/lut-synth/synthesis/ac-synthesizer.cpp
-  src/lut-synth/synthesis/dsd-synthesizer.cpp
-  src/lut-synth/synthesis/exact-synthesizer.cpp
   src/lut-synth/synthesis/exact-synthesis.cpp
-  src/lut-synth/synthesis/rmdds-synthesizer.cpp
   src/lut-synth/synthesis/rmdds.cpp
   src/lut-synth/synthesis/select-swap.cpp
   src/lut-synth/synthesis/select-swap-dont-care.cpp

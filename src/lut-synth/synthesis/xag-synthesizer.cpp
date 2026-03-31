@@ -7,9 +7,60 @@
 #include "lut-synth/synthesis/ss-synthesizer.hpp"
 #include "lut-synth/truth-table.hpp"
 
+#include <cassert>
 #include <unordered_map>
 
 namespace lut_synth {
+
+mockturtle::xag_network synthesize_ac(std::vector<kitty::dynamic_truth_table> const &tts,
+                                      uint32_t max_lut_size);
+mockturtle::xag_network
+synthesize_positive_davio(std::vector<kitty::dynamic_truth_table> const &tts);
+mockturtle::xag_network synthesize_dsd(std::vector<kitty::dynamic_truth_table> const &tts);
+
+ACSynthesizer::ACSynthesizer(uint32_t max_lut_size) : max_lut_size_(max_lut_size) {}
+
+std::string ACSynthesizer::name() const { return "ac"; }
+
+mockturtle::xag_network
+ACSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
+    assert(max_lut_size_ > 0u);
+    return synthesize_ac(tts, max_lut_size_);
+}
+
+std::string DavioSynthesizer::name() const { return "davio"; }
+
+mockturtle::xag_network
+DavioSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
+    return synthesize_positive_davio(tts);
+}
+
+std::string DSDSynthesizer::name() const { return "dsd"; }
+
+mockturtle::xag_network
+DSDSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
+    return synthesize_dsd(tts);
+}
+
+ExactSynthesizer::ExactSynthesizer(ExactSynthesisParams const &params)
+    : params_(params) {}
+
+std::string ExactSynthesizer::name() const { return "exact"; }
+
+mockturtle::xag_network
+ExactSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
+    return synthesize_exact(tts, params_);
+}
+
+RMDDSSynthesizer::RMDDSSynthesizer(RMDDSParams const &params)
+    : params_(params) {}
+
+std::string RMDDSSynthesizer::name() const { return "rmdds"; }
+
+mockturtle::xag_network
+RMDDSSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
+    return synthesize_rmdds(tts, params_);
+}
 
 namespace {
 
