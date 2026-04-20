@@ -25,7 +25,6 @@ gurobi.log
 .claude/scheduled_tasks.lock
 
 # LaTeX build artifacts
-paper/*/main.pdf
 paper/*/*.aux
 paper/*/*.log
 paper/*/*.bbl
