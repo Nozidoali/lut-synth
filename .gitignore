@@ -19,3 +19,7 @@ Thumbs.db
 
 # Results
 results/
+
+# Tool artifacts
+gurobi.log
+.claude/scheduled_tasks.lock
