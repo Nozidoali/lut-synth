@@ -7,3 +7,6 @@
 [submodule "qlut-benchmarks"]
 	path = third-party/qlut-benchmarks
 	url = git@github.com:Nozidoali/qlut-benchmarks.git
+[submodule "paper/qce2026"]
+	path = paper/qce2026
+	url = OVERLEAF_PROJECT_URL_REMOVED
