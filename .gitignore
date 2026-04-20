@@ -23,3 +23,14 @@ results/
 # Tool artifacts
 gurobi.log
 .claude/scheduled_tasks.lock
+
+# LaTeX build artifacts
+paper/*/main.pdf
+paper/*/*.aux
+paper/*/*.log
+paper/*/*.bbl
+paper/*/*.blg
+paper/*/*.out
+paper/*/*.fls
+paper/*/*.fdb_latexmk
+paper/*/*.synctex.gz
