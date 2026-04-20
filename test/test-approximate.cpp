@@ -4,6 +4,7 @@
 #include <lut-synth/synthesis/synthesis.hpp>
 #include <lut-synth/resynthesis/resynthesis.hpp>
 #include <lut-synth/error.hpp>
+#include <lut-synth/approximate/resynthesis/narrow-resub.hpp>
 
 #include <mockturtle/algorithms/simulation.hpp>
 #include <mockturtle/networks/xag.hpp>
@@ -70,4 +71,63 @@ TEST_CASE("error metrics mhd", "[approximate-resub]") {
 
     double nmhd = lut_synth::compute_error<lut_synth::ErrorMetric::NMHD>(orig_vec, approx_vec);
     CHECK(nmhd == 1.0);
+}
+
+TEST_CASE("narrow_and_resub removes AND under large budget", "[narrow-resub]") {
+    mockturtle::xag_network xag;
+    auto a = xag.create_pi();
+    auto b = xag.create_pi();
+    auto f = xag.create_and(a, b);
+    xag.create_po(f);
+
+    lut_synth::approximate::NarrowResubParams params;
+    params.error_bound = 1.0;
+    params.num_patterns = 1024;
+
+    auto result = lut_synth::approximate::narrow_and_resub(xag, params);
+
+    CHECK(result.stats.and_before == 1);
+    CHECK(result.stats.and_after == 0);
+    CHECK(result.stats.lacs_applied >= 1);
+}
+
+TEST_CASE("narrow_and_resub preserves AND under zero budget", "[narrow-resub]") {
+    mockturtle::xag_network xag;
+    auto a = xag.create_pi();
+    auto b = xag.create_pi();
+    auto f = xag.create_and(a, b);
+    xag.create_po(f);
+
+    lut_synth::approximate::NarrowResubParams params;
+    params.error_bound = 0.0;
+    params.num_patterns = 1024;
+
+    auto result = lut_synth::approximate::narrow_and_resub(xag, params);
+
+    CHECK(result.stats.and_after == 1);
+    CHECK(result.stats.lacs_applied == 0);
+}
+
+TEST_CASE("narrow_and_resub skips ANDs feeding a locked PO", "[narrow-resub]") {
+    mockturtle::xag_network xag;
+    auto a = xag.create_pi();
+    auto b = xag.create_pi();
+    auto c = xag.create_pi();
+    auto d = xag.create_pi();
+    auto locked_and = xag.create_and(a, b);
+    auto free_and = xag.create_and(c, d);
+    xag.create_po(locked_and);
+    xag.create_po(free_and);
+
+    lut_synth::approximate::NarrowResubParams params;
+    params.error_bound = 1.0;
+    params.num_patterns = 1024;
+    params.locked_outputs = {true, false};
+
+    auto result = lut_synth::approximate::narrow_and_resub(xag, params);
+
+    CHECK(result.stats.and_before == 2);
+    CHECK(result.stats.and_locked == 1);
+    CHECK(result.stats.and_after == 1);
+    CHECK(result.stats.lacs_applied == 1);
 }

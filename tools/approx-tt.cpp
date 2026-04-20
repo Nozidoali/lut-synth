@@ -1,5 +1,6 @@
 #include "lut-synth/approximate/tt-approximation/tt-approximation.hpp"
 #include "lut-synth/error.hpp"
+#include "lut-synth/h4-config.hpp"
 #include "lut-synth/truth-table.hpp"
 
 #include <cassert>
@@ -65,16 +66,8 @@ Args parse_args(int argc, char* argv[]) {
     return args;
 }
 
-uint32_t ceil_log2(uint32_t n) {
-    assert(n >= 2);
-    uint32_t bits = 0;
-    uint32_t v = n - 1;
-    while (v > 0) {
-        ++bits;
-        v >>= 1;
-    }
-    return bits;
-}
+using lut_synth::ceil_log2;
+using lut_synth::compute_h4_locked_bits;
 
 void print_usage() {
     std::cerr << "Usage: approx-tt --input <file> --output <file> "
@@ -111,10 +104,9 @@ int main(int argc, char* argv[]) {
 
     if (args.h4) {
         uint32_t bw_mu = ceil_log2(args.rank);
-        uint32_t bw_nu = bw_mu;
-        params.register_bitsizes = {1, 1, bw_mu, bw_nu, args.precision};
+        params.register_bitsizes = {1, 1, bw_mu, bw_mu, args.precision};
 
-        uint32_t locked_bits = 2 + 2 * bw_mu;
+        uint32_t locked_bits = compute_h4_locked_bits(args.rank);
         uint32_t num_outputs = static_cast<uint32_t>(tt.get_tts().size());
         uint32_t expected_outputs = locked_bits + args.precision;
         if (num_outputs != expected_outputs) {

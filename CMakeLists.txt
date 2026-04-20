@@ -31,6 +31,7 @@ add_library(lut-synth STATIC
   src/lut-synth/resynthesis/resynthesis-util.cpp
   src/lut-synth/resynthesis/resynthesis-v3.cpp
   src/lut-synth/approximate/resynthesis/resubals.cpp
+  src/lut-synth/approximate/resynthesis/narrow-resub.cpp
   src/lut-synth/approximate/resynthesis/lac.cpp
   src/lut-synth/approximate/resynthesis/lac-manager.cpp
   src/lut-synth/approximate/resynthesis/knapsack.cpp
@@ -72,6 +73,9 @@ if(BUILD_TOOLS)
 
   add_executable(synth-tt tools/synth-tt.cpp)
   target_link_libraries(synth-tt PRIVATE lut-synth)
+
+  add_executable(approx-xag tools/approx-xag.cpp)
+  target_link_libraries(approx-xag PRIVATE lut-synth)
 endif()
 
 enable_testing()

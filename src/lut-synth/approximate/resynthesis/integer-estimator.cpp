@@ -9,8 +9,10 @@
 namespace lut_synth::approximate {
 
 IntegerEstimator::IntegerEstimator(uint32_t num_patterns, uint32_t seed,
-                                   std::vector<double> const& weights)
-    : num_patterns_(num_patterns), seed_(seed), weights_(weights),
+                                   std::vector<double> const& weights,
+                                   uint32_t exhaustive_threshold)
+    : num_patterns_(num_patterns), seed_(seed),
+      exhaustive_threshold_(exhaustive_threshold), weights_(weights),
       accumulated_error_(0.0), accumulated_error_count_(0), num_bits_(0),
       ntk_(nullptr) {}
 
@@ -19,12 +21,29 @@ void IntegerEstimator::initialize(Ntk const& ntk) {
     accumulated_error_ = 0.0;
     accumulated_error_count_ = 0;
 
-    std::mt19937 rng(seed_);
-    mockturtle::partial_simulator sim(ntk.num_pis(), num_patterns_, rng());
-
+    uint32_t const n = ntk.num_pis();
     tts_ = std::make_unique<mockturtle::unordered_node_map<TT, Ntk>>(ntk);
-    mockturtle::simulate_nodes(ntk, *tts_, sim);
-    num_bits_ = sim.num_bits();
+
+    if (n > 0 && n <= exhaustive_threshold_) {
+        uint64_t const num_bits = 1ull << n;
+        std::vector<kitty::partial_truth_table> patterns;
+        patterns.reserve(n);
+        for (uint32_t i = 0; i < n; ++i) {
+            kitty::partial_truth_table p(num_bits);
+            for (uint64_t b = 0; b < num_bits; ++b) {
+                if ((b >> i) & 1ull) kitty::set_bit(p, b);
+            }
+            patterns.push_back(std::move(p));
+        }
+        mockturtle::partial_simulator sim(patterns);
+        mockturtle::simulate_nodes(ntk, *tts_, sim);
+        num_bits_ = num_bits;
+    } else {
+        std::mt19937 rng(seed_);
+        mockturtle::partial_simulator sim(n, num_patterns_, rng());
+        mockturtle::simulate_nodes(ntk, *tts_, sim);
+        num_bits_ = sim.num_bits();
+    }
 
     po_nodes_.clear();
     po_complemented_.clear();
@@ -113,126 +132,102 @@ IntegerEstimator::TT IntegerEstimator::compute_candidate_tt(LAC const& lac) cons
     return candidate;
 }
 
-double IntegerEstimator::compute_integer_error_for_lac(LAC const& lac) const {
+namespace {
+
+inline bool bit_at(IntegerEstimator::TT const& tt, uint64_t x) {
+    return (tt._bits[x >> 6] >> (x & 0x3f)) & 1u;
+}
+
+uint64_t popcount_bits(IntegerEstimator::TT const& tt) {
+    uint64_t c = 0;
+    for (uint64_t block : tt._bits) c += __builtin_popcountll(block);
+    return c;
+}
+
+} // namespace
+
+std::vector<uint32_t> IntegerEstimator::collect_affected_outputs(LAC const& lac) const {
+    std::vector<uint32_t> affected;
+    uint32_t num_outputs = po_nodes_.size();
+    for (uint32_t i = 0; i < num_outputs; ++i) {
+        if (po_nodes_[i] == lac.target) affected.push_back(i);
+    }
+    return affected;
+}
+
+uint32_t IntegerEstimator::new_value_at(
+    uint64_t x, TT const& candidate,
+    std::vector<bool> const& is_affected_po) const {
+    uint32_t num_outputs = po_nodes_.size();
+    uint32_t new_value = 0;
+    for (uint32_t i = 0; i < num_outputs; ++i) {
+        bool bit = is_affected_po[i]
+                       ? bit_at(candidate, x)
+                       : bit_at((*tts_)[po_nodes_[i]], x);
+        if (po_complemented_[i]) bit = !bit;
+        if (bit) new_value |= (1u << (num_outputs - 1 - i));
+    }
+    return new_value;
+}
+
+template <typename Visit>
+void IntegerEstimator::for_each_changed_pattern(LAC const& lac, Visit visit) const {
     TT target_tt = (*tts_)[lac.target];
     TT candidate = compute_candidate_tt(lac);
-
     TT diff_mask = tt_ops::compute_xor(target_tt, candidate, num_bits_);
 
-    uint32_t num_outputs = po_nodes_.size();
-    bool affects_output = false;
-    std::vector<uint32_t> affected_output_indices;
-
-    for (uint32_t i = 0; i < num_outputs; ++i) {
-        if (po_nodes_[i] == lac.target) {
-            affects_output = true;
-            affected_output_indices.push_back(i);
-        }
+    std::vector<uint32_t> affected = collect_affected_outputs(lac);
+    if (affected.empty()) {
+        visit(false, candidate, diff_mask, std::vector<bool>{});
+        return;
     }
 
-    if (!affects_output) {
-        uint64_t diff_count = 0;
-        for (size_t k = 0; k < diff_mask._bits.size(); ++k) {
-            diff_count += __builtin_popcountll(diff_mask._bits[k]);
-        }
-        return static_cast<double>(diff_count) / num_bits_;
-    }
+    std::vector<bool> is_affected_po(po_nodes_.size(), false);
+    for (uint32_t ai : affected) is_affected_po[ai] = true;
+    visit(true, candidate, diff_mask, is_affected_po);
+}
 
-    double total_error = 0.0;
+double IntegerEstimator::compute_integer_error_for_lac(LAC const& lac) const {
+    double result = 0.0;
     bool uniform = weights_.empty();
-
-    for (uint64_t x = 0; x < num_bits_; ++x) {
-        bool bit_changed = (diff_mask._bits[x >> 6] >> (x & 0x3f)) & 1;
-        if (!bit_changed) continue;
-
-        uint32_t new_value = 0;
-        for (uint32_t i = 0; i < num_outputs; ++i) {
-            bool bit;
-            bool is_affected = false;
-            for (uint32_t ai : affected_output_indices) {
-                if (ai == i) { is_affected = true; break; }
-            }
-
-            if (is_affected) {
-                bit = (candidate._bits[x >> 6] >> (x & 0x3f)) & 1;
-                if (po_complemented_[i]) bit = !bit;
-            } else {
-                TT const& tt = (*tts_)[po_nodes_[i]];
-                bit = (tt._bits[x >> 6] >> (x & 0x3f)) & 1;
-                if (po_complemented_[i]) bit = !bit;
-            }
-
-            if (bit) {
-                new_value |= (1u << (num_outputs - 1 - i));
-            }
+    for_each_changed_pattern(lac, [&](bool affects_po, TT const&,
+                                      TT const& diff_mask,
+                                      std::vector<bool> const& is_affected_po) {
+        if (!affects_po) {
+            result = static_cast<double>(popcount_bits(diff_mask)) / num_bits_;
+            return;
         }
-
-        int32_t abs_diff = std::abs(static_cast<int32_t>(new_value) -
-                                    static_cast<int32_t>(exact_integers_[x]));
-        double w = uniform ? (1.0 / num_bits_) : weights_[x];
-        total_error += w * abs_diff;
-    }
-
-    return total_error;
+        TT target_tt = (*tts_)[lac.target];
+        TT candidate = compute_candidate_tt(lac);
+        for (uint64_t x = 0; x < num_bits_; ++x) {
+            if (!bit_at(diff_mask, x)) continue;
+            uint32_t new_value = new_value_at(x, candidate, is_affected_po);
+            int32_t abs_diff = std::abs(static_cast<int32_t>(new_value) -
+                                        static_cast<int32_t>(exact_integers_[x]));
+            double w = uniform ? (1.0 / num_bits_) : weights_[x];
+            result += w * abs_diff;
+        }
+    });
+    return result;
 }
 
 uint64_t IntegerEstimator::compute_integer_error_count_for_lac(LAC const& lac) const {
-    TT target_tt = (*tts_)[lac.target];
-    TT candidate = compute_candidate_tt(lac);
-    TT diff_mask = tt_ops::compute_xor(target_tt, candidate, num_bits_);
-
-    uint32_t num_outputs = po_nodes_.size();
-    bool affects_output = false;
-    std::vector<uint32_t> affected_output_indices;
-
-    for (uint32_t i = 0; i < num_outputs; ++i) {
-        if (po_nodes_[i] == lac.target) {
-            affects_output = true;
-            affected_output_indices.push_back(i);
+    uint64_t result = 0;
+    for_each_changed_pattern(lac, [&](bool affects_po, TT const&,
+                                      TT const& diff_mask,
+                                      std::vector<bool> const& is_affected_po) {
+        if (!affects_po) {
+            result = popcount_bits(diff_mask);
+            return;
         }
-    }
-
-    if (!affects_output) {
-        uint64_t diff_count = 0;
-        for (size_t k = 0; k < diff_mask._bits.size(); ++k) {
-            diff_count += __builtin_popcountll(diff_mask._bits[k]);
+        TT candidate = compute_candidate_tt(lac);
+        for (uint64_t x = 0; x < num_bits_; ++x) {
+            if (!bit_at(diff_mask, x)) continue;
+            uint32_t new_value = new_value_at(x, candidate, is_affected_po);
+            if (new_value != exact_integers_[x]) ++result;
         }
-        return diff_count;
-    }
-
-    uint64_t error_count = 0;
-    for (uint64_t x = 0; x < num_bits_; ++x) {
-        bool bit_changed = (diff_mask._bits[x >> 6] >> (x & 0x3f)) & 1;
-        if (!bit_changed) continue;
-
-        uint32_t new_value = 0;
-        for (uint32_t i = 0; i < num_outputs; ++i) {
-            bool bit;
-            bool is_affected = false;
-            for (uint32_t ai : affected_output_indices) {
-                if (ai == i) { is_affected = true; break; }
-            }
-
-            if (is_affected) {
-                bit = (candidate._bits[x >> 6] >> (x & 0x3f)) & 1;
-                if (po_complemented_[i]) bit = !bit;
-            } else {
-                TT const& tt = (*tts_)[po_nodes_[i]];
-                bit = (tt._bits[x >> 6] >> (x & 0x3f)) & 1;
-                if (po_complemented_[i]) bit = !bit;
-            }
-
-            if (bit) {
-                new_value |= (1u << (num_outputs - 1 - i));
-            }
-        }
-
-        if (new_value != exact_integers_[x]) {
-            ++error_count;
-        }
-    }
-
-    return error_count;
+    });
+    return result;
 }
 
 double IntegerEstimator::estimate(LAC const& lac) {
@@ -243,6 +238,30 @@ double IntegerEstimator::estimate(LAC const& lac) {
 uint64_t IntegerEstimator::estimate_count(LAC const& lac) {
     if (!ntk_ || !tts_) return num_bits_;
     return compute_integer_error_count_for_lac(lac);
+}
+
+uint32_t IntegerEstimator::estimate_max_per_pattern(LAC const& lac) {
+    if (!ntk_ || !tts_) return 0;
+    return compute_max_integer_error_for_lac(lac);
+}
+
+uint32_t IntegerEstimator::compute_max_integer_error_for_lac(LAC const& lac) const {
+    uint32_t result = 0;
+    for_each_changed_pattern(lac, [&](bool affects_po, TT const&,
+                                      TT const& diff_mask,
+                                      std::vector<bool> const& is_affected_po) {
+        if (!affects_po) return; // internal target: no per-pattern max info
+        TT candidate = compute_candidate_tt(lac);
+        for (uint64_t x = 0; x < num_bits_; ++x) {
+            if (!bit_at(diff_mask, x)) continue;
+            uint32_t new_value = new_value_at(x, candidate, is_affected_po);
+            uint32_t abs_diff = static_cast<uint32_t>(std::abs(
+                static_cast<int32_t>(new_value) -
+                static_cast<int32_t>(exact_integers_[x])));
+            if (abs_diff > result) result = abs_diff;
+        }
+    });
+    return result;
 }
 
 void IntegerEstimator::update_after_apply(LAC const& lac) {
