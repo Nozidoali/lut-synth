@@ -36,18 +36,20 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 sys.path.insert(0, str(PROJECT_ROOT / "third-party" / "qlut-benchmarks" / "src"))
 
 plt.rcParams.update({
-    "font.size": 14,
-    "axes.titlesize": 15,
-    "axes.labelsize": 14,
-    "xtick.labelsize": 12,
-    "ytick.labelsize": 12,
-    "legend.fontsize": 11,
+    "font.size": 18,
+    "axes.titlesize": 20,
+    "axes.labelsize": 18,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 15,
     "figure.dpi": 140,
-    "savefig.dpi": 200,
+    "savefig.dpi": 220,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "axes.grid": True,
     "grid.alpha": 0.25,
+    "lines.linewidth": 2.0,
+    "lines.markersize": 7,
 })
 
 STRATEGY_STYLE = {
@@ -149,8 +151,8 @@ def fig_pareto_chained():
 # ---------- fig4: per-window eb allocation ----------
 def fig_per_window_eb():
     cases = [
-        ("5_33_w4_m12",  r"$(5, 33)$: $w{=}4$, $r{=}10$, $\gcd(2^w,r){=}2$"),
-        ("7_221_w4_m16", r"$(7, 221)$: $w{=}4$, $r{=}48$, $\gcd(2^w,r){=}16$"),
+        ("5_33_w4_m12",  r"$(5, 33)$: $r{=}10$, $\gcd{=}2$"),
+        ("7_221_w4_m16", r"$(7, 221)$: $r{=}48$, $\gcd{=}16$"),
     ]
     order = ["uniform", "front_heavy", "back_heavy", "linear_up", "linear_down"]
     pretty = {
@@ -158,7 +160,7 @@ def fig_per_window_eb():
         "back_heavy": "back-heavy", "linear_up": "linear-up",
         "linear_down": "linear-down",
     }
-    fig, axes = plt.subplots(1, len(cases), figsize=(12, 4.6), sharey=True)
+    fig, axes = plt.subplots(1, len(cases), figsize=(12, 4.8), sharey=True)
     for ax, (slug, title) in zip(axes, cases):
         p = RESULTS / "per_window_eb" / slug / "per_window_eb.json"
         data = _load(p)
@@ -177,7 +179,7 @@ def fig_per_window_eb():
                    edgecolor="black", linewidth=0.4)
         ax.set_xticks(np.arange(len(totals)))
         ax.set_xticklabels([f"{t}" for t in totals])
-        ax.set_xlabel(r"total Boolean budget $\varepsilon_B$ (summed over windows)")
+        ax.set_xlabel(r"total arithmetic budget $\varepsilon_A$")
         ax.set_title(title)
         ax.grid(True, alpha=0.25, axis="y")
         ax.set_axisbelow(True)
@@ -200,7 +202,7 @@ def fig_ftqc_regime():
     if not data: return
     p_phys_list = [1e-4, 1e-3, 3e-3, 1e-2]
     Q = 16
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.2))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.8))
     p_colors = {1e-4: "#1f6fb4", 1e-3: "#2a9d8f",
                 3e-3: "#d64545", 1e-2: "#9b5de5"}
     p_labels = {1e-4: r"$p_\mathrm{phys}{=}10^{-4}$",
@@ -228,10 +230,10 @@ def fig_ftqc_regime():
                         lw=1.8, ms=6,
                         label=rf"$N{{=}}{case['N']}$, {p_labels[p_phys]}",
                         color=p_colors[p_phys], alpha=0.9)
-            ax.set_xlabel(r"Boolean budget $\varepsilon_B$")
+            ax.set_xlabel(r"arithmetic budget $\varepsilon_A$")
             if metric == "d":
                 ax.set_ylabel(r"required surface-code distance $d$")
-                ax.set_title(r"code distance vs $\varepsilon_B$")
+                ax.set_title(r"code distance vs $\varepsilon_A$")
             else:
                 ax.set_ylabel(r"$V_\mathrm{factor}(\varepsilon_B)/V_\mathrm{factor}(0)$")
                 ax.axhline(1, color="gray", ls="--", lw=0.8, alpha=0.6)
@@ -261,7 +263,7 @@ def fig_period_damage():
     cmap = plt.get_cmap("viridis")
     colors = [cmap(i / max(1, len(dumps) - 1)) for i in range(len(dumps))]
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
     r_star = 12
     for i, d in enumerate(dumps):
         data = _load(d)

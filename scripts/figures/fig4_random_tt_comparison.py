@@ -91,20 +91,21 @@ ebs = sorted({eb for g in groups.values() for eb in g})
 has_narrow = any(r["narrow"] is not None
                  for g in groups.values() for seeds in g.values()
                  for r in seeds)
-method_labels = ["ResubALS (HLQCS)", "approx-tt (ILP)"] + \
-                (["narrow_and_resub"] if has_narrow else [])
+method_labels = ["ResubALS (baseline)", "approx-tt (ILP, ours)"] + \
+                (["narrow_and_resub (ours)"] if has_narrow else [])
 method_keys = ["resub", "ilp"] + (["narrow"] if has_narrow else [])
-colors = ["#d62728", "#2ca02c"] + (["#4c72b0"] if has_narrow else [])
+colors = ["#6c6c6c", "#2a9d8f"] + (["#1f6fb4"] if has_narrow else [])
 
 plt.rcParams.update({
-    "font.size": 13,
-    "axes.titlesize": 14,
-    "axes.labelsize": 13,
-    "xtick.labelsize": 12,
-    "ytick.labelsize": 12,
-    "legend.fontsize": 11,
+    "font.size": 18,
+    "axes.titlesize": 20,
+    "axes.labelsize": 18,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 15,
     "axes.spines.top": False,
     "axes.spines.right": False,
+    "savefig.dpi": 220,
 })
 
 keys = sorted(groups.keys())
@@ -128,7 +129,7 @@ for ax, (n, m) in zip(flat_axes, keys):
     ax.set_xticks(x)
     ax.set_xticklabels([f"{eb}" for eb in ebs])
     ax.set_title(rf"$n{{=}}{n}$, $m{{=}}{m}$")
-    ax.set_xlabel(r"error bound $\varepsilon_B$")
+    ax.set_xlabel(r"error bound $\varepsilon_A$")
     ax.axhline(1, color="gray", lw=0.7, ls="--", alpha=0.6)
     ax.set_ylim(0, 1.18)
     ax.grid(True, alpha=0.25, axis="y")
