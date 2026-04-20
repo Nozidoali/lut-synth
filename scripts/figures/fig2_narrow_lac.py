@@ -16,7 +16,7 @@ def _node(ax, x, y, label, shape="circle", color="#4c72b0"):
     else:
         ax.add_patch(patches.Rectangle((x - 0.17, y - 0.17), 0.34, 0.34,
                                        fc=color, ec="black", lw=0.8))
-    ax.text(x, y, label, ha="center", va="center", fontsize=8,
+    ax.text(x, y, label, ha="center", va="center", fontsize=11,
             color="white", fontweight="bold")
 
 
@@ -44,14 +44,14 @@ def _draw_xor(ax):
     ax.plot([0.75, 0.50], [0.42, 0.83], "k-", lw=1)
 
 
-fig, axes = plt.subplots(1, 6, figsize=(10, 1.8))
-titles = ["Target AND", "→ const 0", "→ const 1",
-          "→ fanin a", "→ fanin b", "→ XOR(a, b)"]
+fig, axes = plt.subplots(1, 6, figsize=(11, 2.2))
+titles = ["target AND", r"$\to$ const 0", r"$\to$ const 1",
+          r"$\to$ fanin $a$", r"$\to$ fanin $b$", r"$\to$ XOR$(a,b)$"]
 for ax, t in zip(axes, titles):
     ax.set_xlim(-0.25, 1.25)
     ax.set_ylim(-0.05, 1.35)
     ax.axis("off")
-    ax.set_title(t, fontsize=9)
+    ax.set_title(t, fontsize=13)
 
 _draw_target(axes[0])
 _draw_simple(axes[1], "0", "#aaaaaa")
@@ -60,9 +60,7 @@ _node(axes[3], 0.50, 1.00, "a", color="#555")
 _node(axes[4], 0.50, 1.00, "b", color="#555")
 _draw_xor(axes[5])
 
-fig.suptitle("narrow_and_resub: 5 local replacement candidates per AND gate",
-             y=1.05, fontsize=10)
-fig.tight_layout(rect=[0, 0, 1, 0.95])
+fig.tight_layout(rect=[0, 0, 1, 1.0])
 fig.savefig(OUT / "fig2_narrow_lac.pdf", dpi=300, bbox_inches="tight")
 fig.savefig(OUT / "fig2_narrow_lac.png", dpi=200, bbox_inches="tight")
 print(f"wrote {OUT / 'fig2_narrow_lac.pdf'}")

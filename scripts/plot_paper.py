@@ -36,12 +36,27 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 sys.path.insert(0, str(PROJECT_ROOT / "third-party" / "qlut-benchmarks" / "src"))
 
 plt.rcParams.update({
-    "font.size": 10,
-    "axes.titlesize": 11,
-    "axes.labelsize": 10,
-    "legend.fontsize": 8,
+    "font.size": 14,
+    "axes.titlesize": 15,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 11,
     "figure.dpi": 140,
+    "savefig.dpi": 200,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.grid": True,
+    "grid.alpha": 0.25,
 })
+
+STRATEGY_STYLE = {
+    "uniform":      {"color": "#4a4a4a", "hatch": None},
+    "front_heavy":  {"color": "#1f6fb4", "hatch": None},
+    "back_heavy":   {"color": "#d64545", "hatch": None},
+    "linear_up":    {"color": "#2a9d8f", "hatch": None},
+    "linear_down":  {"color": "#9b5de5", "hatch": None},
+}
 
 
 def _load(p: Path):
@@ -134,33 +149,46 @@ def fig_pareto_chained():
 # ---------- fig4: per-window eb allocation ----------
 def fig_per_window_eb():
     cases = [
-        ("5_33_w4_m12", "(5,33) w=4 m=12, r=10, gcd(16,10)=2"),
-        ("7_221_w4_m16", "(7,221) w=4 m=16, r=48, gcd(16,48)=16"),
+        ("5_33_w4_m12",  r"$(5, 33)$: $w{=}4$, $r{=}10$, $\gcd(2^w,r){=}2$"),
+        ("7_221_w4_m16", r"$(7, 221)$: $w{=}4$, $r{=}48$, $\gcd(2^w,r){=}16$"),
     ]
-    fig, axes = plt.subplots(1, len(cases), figsize=(10, 4), sharey=True)
+    order = ["uniform", "front_heavy", "back_heavy", "linear_up", "linear_down"]
+    pretty = {
+        "uniform": "uniform", "front_heavy": "front-heavy",
+        "back_heavy": "back-heavy", "linear_up": "linear-up",
+        "linear_down": "linear-down",
+    }
+    fig, axes = plt.subplots(1, len(cases), figsize=(12, 4.6), sharey=True)
     for ax, (slug, title) in zip(axes, cases):
         p = RESULTS / "per_window_eb" / slug / "per_window_eb.json"
         data = _load(p)
         if not data: continue
-        strategies = sorted({r["strategy"] for r in data})
+        strategies = [s for s in order
+                      if s in {r["strategy"] for r in data}]
         totals = sorted({r["total"] for r in data})
         width = 0.8 / len(strategies)
         for i, s in enumerate(strategies):
             vals = [next((r["P_ok"] for r in data
                           if r["total"] == t and r["strategy"] == s), 0)
                     for t in totals]
-            ax.bar(np.arange(len(totals)) + i * width, vals, width, label=s)
-        ax.set_xticks(np.arange(len(totals)) + 0.4 - width/2)
+            ax.bar(np.arange(len(totals)) + i * width - 0.4 + width/2,
+                   vals, width, label=pretty[s],
+                   color=STRATEGY_STYLE[s]["color"],
+                   edgecolor="black", linewidth=0.4)
+        ax.set_xticks(np.arange(len(totals)))
         ax.set_xticklabels([f"{t}" for t in totals])
-        ax.set_xlabel("Total eb budget (sum over k windows)")
-        ax.set_title(title, fontsize=9)
-        ax.grid(True, alpha=0.3, axis="y")
-    axes[0].set_ylabel("Shor's P(ok) per shot")
-    axes[-1].legend(fontsize=7, loc="upper right")
-    fig.suptitle("Per-window eb allocation — concentrated beats uniform "
-                 "(but which window is best depends on gcd(2^w, r))", y=0.98)
-    fig.tight_layout()
-    fig.savefig(OUT / "fig4_per_window_eb.png")
+        ax.set_xlabel(r"total Boolean budget $\varepsilon_B$ (summed over windows)")
+        ax.set_title(title)
+        ax.grid(True, alpha=0.25, axis="y")
+        ax.set_axisbelow(True)
+    axes[0].set_ylabel(r"Shor per-shot success $P(\mathrm{ok})$")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=len(strategies),
+               bbox_to_anchor=(0.5, -0.02), frameon=True, framealpha=0.9,
+               edgecolor="0.7")
+    fig.tight_layout(rect=[0, 0.08, 1, 1])
+    fig.savefig(OUT / "fig4_per_window_eb.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig4_per_window_eb.pdf", bbox_inches="tight")
     plt.close(fig); print(f"wrote {OUT / 'fig4_per_window_eb.png'}")
 
 
@@ -172,7 +200,14 @@ def fig_ftqc_regime():
     if not data: return
     p_phys_list = [1e-4, 1e-3, 3e-3, 1e-2]
     Q = 16
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.2))
+    p_colors = {1e-4: "#1f6fb4", 1e-3: "#2a9d8f",
+                3e-3: "#d64545", 1e-2: "#9b5de5"}
+    p_labels = {1e-4: r"$p_\mathrm{phys}{=}10^{-4}$",
+                1e-3: r"$p_\mathrm{phys}{=}10^{-3}$",
+                3e-3: r"$p_\mathrm{phys}{=}3{\times}10^{-3}$",
+                1e-2: r"$p_\mathrm{phys}{=}10^{-2}$"}
+    linestyles = {33: "-", 35: "--", 143: ":", 221: "-.", 323: (0, (3, 1, 1, 1))}
     for case in data:
         for ax, metric in zip(axes, ("d", "V_ratio")):
             for p_phys in p_phys_list:
@@ -189,22 +224,27 @@ def fig_ftqc_regime():
                     if base_V is None: base_V = V
                     xs.append(r["eb"])
                     ys.append(d if metric == "d" else V/base_V)
-                ax.plot(xs, ys, "o-", label=f"N={case['N']} p={p_phys:.0e}",
-                        alpha=0.75)
-            ax.set_xlabel("eb")
+                ax.plot(xs, ys, marker="o", ls=linestyles.get(case["N"], "-"),
+                        lw=1.8, ms=6,
+                        label=rf"$N{{=}}{case['N']}$, {p_labels[p_phys]}",
+                        color=p_colors[p_phys], alpha=0.9)
+            ax.set_xlabel(r"Boolean budget $\varepsilon_B$")
             if metric == "d":
-                ax.set_ylabel("required surface-code distance d")
-                ax.set_title("Code distance vs eb")
+                ax.set_ylabel(r"required surface-code distance $d$")
+                ax.set_title(r"code distance vs $\varepsilon_B$")
             else:
-                ax.set_ylabel("V_factor ratio vs eb=0")
-                ax.axhline(1, color="gray", ls="--", lw=0.7, alpha=0.5)
-                ax.set_title("Total factoring cost ratio (net savings if <1)")
-            ax.grid(True, alpha=0.3)
-    axes[0].legend(fontsize=7, loc="best", ncol=2)
-    fig.suptitle("FTQC regime map — narrow helps only at high p_phys where "
-                 "d is N_T-sensitive")
-    fig.tight_layout()
-    fig.savefig(OUT / "fig5_ftqc_regime.png")
+                ax.set_ylabel(r"$V_\mathrm{factor}(\varepsilon_B)/V_\mathrm{factor}(0)$")
+                ax.axhline(1, color="gray", ls="--", lw=0.8, alpha=0.6)
+                ax.set_title(r"total factoring-cost ratio")
+            ax.grid(True, alpha=0.25)
+            ax.set_axisbelow(True)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=4,
+               bbox_to_anchor=(0.5, -0.02), frameon=True, framealpha=0.9,
+               edgecolor="0.7")
+    fig.tight_layout(rect=[0, 0.08, 1, 1])
+    fig.savefig(OUT / "fig5_ftqc_regime.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig5_ftqc_regime.pdf", bbox_inches="tight")
     plt.close(fig); print(f"wrote {OUT / 'fig5_ftqc_regime.png'}")
 
 
@@ -221,7 +261,7 @@ def fig_period_damage():
     cmap = plt.get_cmap("viridis")
     colors = [cmap(i / max(1, len(dumps) - 1)) for i in range(len(dumps))]
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
     r_star = 12
     for i, d in enumerate(dumps):
         data = _load(d)
@@ -231,13 +271,12 @@ def fig_period_damage():
         L = len(f)
         show = min(L, 4 * r_star)
 
-        axes[0].plot(range(show), f[:show], "o-", ms=3, lw=0.7,
-                     color=colors[i], label=f"eb={eb}")
+        axes[0].plot(range(show), f[:show], "o-", ms=4, lw=1.0,
+                     color=colors[i], label=rf"$\varepsilon_B{{=}}{eb}$")
 
         r_max = min(L - 1, 4 * r_star)
         corrs = [float((f[: L - r] == f[r:]).mean()) for r in range(1, r_max + 1)]
-        axes[1].plot(range(1, r_max + 1), corrs, color=colors[i], lw=0.9,
-                     label=f"eb={eb}")
+        axes[1].plot(range(1, r_max + 1), corrs, color=colors[i], lw=1.4)
 
         arr = f
         vals, counts = np.unique(arr, return_counts=True)
@@ -248,26 +287,29 @@ def fig_period_damage():
         amp = np.fft.fft(ind) / math.sqrt(L)
         prob = (np.abs(amp) ** 2); prob = prob / prob.sum()
         j_plot = min(L, 4 * (L // r_star) + 1)
-        axes[2].plot(range(j_plot), prob[:j_plot], color=colors[i], lw=0.7,
-                     label=f"eb={eb}")
+        axes[2].plot(range(j_plot), prob[:j_plot], color=colors[i], lw=1.2)
 
     for k in range(r_star, min(L - 1, 4 * r_star) + 1, r_star):
-        axes[0].axvline(k, color="gray", lw=0.4, alpha=0.4)
-        axes[1].axvline(k, color="red", lw=0.7, alpha=0.4, ls="--")
-    axes[0].set_xlabel("x"); axes[0].set_ylabel("f̃(x)")
-    axes[0].set_title("f̃(x) sequence (first 4 periods)")
-    axes[1].set_xlabel("lag r"); axes[1].set_ylabel("autocorr C(r)")
+        axes[0].axvline(k, color="gray", lw=0.5, alpha=0.5)
+        axes[1].axvline(k, color="#d64545", lw=1.0, alpha=0.55, ls="--")
+    axes[0].set_xlabel(r"input $x$")
+    axes[0].set_ylabel(r"$\tilde{f}(x)$")
+    axes[0].set_title(r"approximated sequence")
+    axes[1].set_xlabel(r"lag $r$")
+    axes[1].set_ylabel(r"autocorrelation $C(r)$")
     axes[1].set_ylim(0, 1.05)
-    axes[1].set_title("Period autocorrelation (red lines at k·r*)")
-    axes[2].set_yscale("log"); axes[2].set_xlabel("QFT index j")
-    axes[2].set_ylabel("|amp(j)|²"); axes[2].set_title("QFT spectrum (log)")
+    axes[1].set_title(r"period autocorrelation")
+    axes[2].set_yscale("log")
+    axes[2].set_xlabel(r"QFT index $j$")
+    axes[2].set_ylabel(r"$|\mathrm{amp}(j)|^{2}$")
+    axes[2].set_title(r"QFT spectrum (log scale)")
     for ax in axes:
-        ax.grid(True, alpha=0.3)
-    axes[0].legend(fontsize=7, ncol=2, loc="upper right")
-    fig.suptitle("Period damage under narrow approximation — "
-                 "(3,35, w=4, m=12), r*=12 preserved, peaks broaden")
+        ax.grid(True, alpha=0.25); ax.set_axisbelow(True)
+    axes[0].legend(ncol=2, loc="upper right", frameon=True, framealpha=0.9,
+                   edgecolor="0.7")
     fig.tight_layout()
-    fig.savefig(OUT / "fig6_period_damage.png")
+    fig.savefig(OUT / "fig6_period_damage.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig6_period_damage.pdf", bbox_inches="tight")
     plt.close(fig); print(f"wrote {OUT / 'fig6_period_damage.png'}")
 
 

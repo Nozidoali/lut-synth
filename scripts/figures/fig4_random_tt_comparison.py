@@ -96,15 +96,27 @@ method_labels = ["ResubALS (HLQCS)", "approx-tt (ILP)"] + \
 method_keys = ["resub", "ilp"] + (["narrow"] if has_narrow else [])
 colors = ["#d62728", "#2ca02c"] + (["#4c72b0"] if has_narrow else [])
 
+plt.rcParams.update({
+    "font.size": 13,
+    "axes.titlesize": 14,
+    "axes.labelsize": 13,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 11,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+})
+
 keys = sorted(groups.keys())
-fig, axes = plt.subplots(1, len(keys), figsize=(3.2 * len(keys), 3),
-                         sharey=True)
-if len(keys) == 1:
-    axes = [axes]
+ncols = min(3, len(keys))
+nrows = (len(keys) + ncols - 1) // ncols
+fig, axes = plt.subplots(nrows, ncols, figsize=(3.6 * ncols, 3.0 * nrows),
+                         sharey=True, squeeze=False)
 x = np.arange(len(ebs))
 width = 0.8 / len(method_keys)
+flat_axes = [axes[i // ncols][i % ncols] for i in range(nrows * ncols)]
 
-for ax, (n, m) in zip(axes, keys):
+for ax, (n, m) in zip(flat_axes, keys):
     for i, (mk, lab, col) in enumerate(zip(method_keys, method_labels, colors)):
         vals = []
         for eb in ebs:
@@ -112,20 +124,25 @@ for ax, (n, m) in zip(axes, keys):
             v = [s[mk] for s in seeds if s.get(mk) is not None]
             vals.append(np.mean(v) if v else np.nan)
         ax.bar(x + (i - 0.5 * (len(method_keys) - 1)) * width, vals, width,
-               color=col, label=lab, edgecolor="black", linewidth=0.3)
+               color=col, label=lab, edgecolor="black", linewidth=0.4)
     ax.set_xticks(x)
     ax.set_xticklabels([f"{eb}" for eb in ebs])
-    ax.set_title(f"n={n}, m={m}", fontsize=10)
-    ax.set_xlabel("Error bound ε")
-    ax.axhline(1, color="gray", lw=0.5, ls=":", alpha=0.5)
-    ax.set_ylim(0, 1.15)
+    ax.set_title(rf"$n{{=}}{n}$, $m{{=}}{m}$")
+    ax.set_xlabel(r"error bound $\varepsilon_B$")
+    ax.axhline(1, color="gray", lw=0.7, ls="--", alpha=0.6)
+    ax.set_ylim(0, 1.18)
     ax.grid(True, alpha=0.25, axis="y")
+    ax.set_axisbelow(True)
 
-axes[0].set_ylabel("AND ratio vs exact")
-axes[-1].legend(loc="lower left", fontsize=7)
-fig.suptitle("AND-count ratio across methods on HLQCS random-TT benchmarks",
-             y=1.00, fontsize=11)
-fig.tight_layout()
+for r in range(nrows):
+    axes[r][0].set_ylabel("AND ratio vs. exact")
+for extra in flat_axes[len(keys):]:
+    extra.axis("off")
+handles, labels = flat_axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, loc="lower center", ncol=len(method_keys),
+           bbox_to_anchor=(0.5, -0.02), frameon=True, framealpha=0.9,
+           edgecolor="0.7")
+fig.tight_layout(rect=[0, 0.05, 1, 1])
 fig.savefig(OUT / "fig4_random_tt.pdf", dpi=300, bbox_inches="tight")
 fig.savefig(OUT / "fig4_random_tt.png", dpi=200, bbox_inches="tight")
 print(f"wrote {OUT / 'fig4_random_tt.pdf'}  ({'with' if has_narrow else 'without'} narrow)")
