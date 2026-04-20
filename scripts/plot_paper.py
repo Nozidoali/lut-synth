@@ -275,8 +275,8 @@ def fig_period_damage():
 
     r_star = 12
     nrows = len(dumps)
-    fig, axes = plt.subplots(nrows, 3, figsize=(13, 2.8 * nrows),
-                             squeeze=False)
+    fig, axes = plt.subplots(nrows, 3, figsize=(13, 1.9 * nrows),
+                             squeeze=False, sharex="col")
 
     for i, d in enumerate(dumps):
         data = _load(d)
@@ -305,13 +305,20 @@ def fig_period_damage():
         axes[i][2].plot(range(j_plot), prob[:j_plot], lw=1.8, color=col)
 
         for k in range(r_star, min(L - 1, 4 * r_star) + 1, r_star):
-            axes[i][0].axvline(k, color="gray", lw=0.5, alpha=0.5)
-            axes[i][1].axvline(k, color="#6c6c6c", lw=1.0, alpha=0.55,
-                               ls=":")
+            axes[i][0].axvline(k, color="#d64545", lw=1.0, alpha=0.55,
+                               ls="--")
+            axes[i][1].axvline(k, color="#d64545", lw=1.0, alpha=0.55,
+                               ls="--")
+        j_plot = min(L, 4 * (L // r_star) + 1)
+        for s in range(1, 5):
+            pk = s * (L // r_star)
+            if pk < j_plot:
+                axes[i][2].axvline(pk, color="#d64545", lw=1.0,
+                                   alpha=0.55, ls="--")
 
         axes[i][0].set_ylabel(rf"$\varepsilon_A{{=}}{eb}$"
                               "\n" r"$\tilde{f}(x)$",
-                              fontsize=16)
+                              fontsize=14)
         axes[i][1].set_ylim(0, 1.05)
         axes[i][2].set_yscale("log")
         for ax in axes[i]:
