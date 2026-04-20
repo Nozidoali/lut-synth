@@ -94,7 +94,7 @@ has_narrow = any(r["narrow"] is not None
 method_labels = ["ResubALS (baseline)", "approx-tt (ILP, ours)"] + \
                 (["narrow_and_resub (ours)"] if has_narrow else [])
 method_keys = ["resub", "ilp"] + (["narrow"] if has_narrow else [])
-colors = ["#6c6c6c", "#2a9d8f"] + (["#1f6fb4"] if has_narrow else [])
+colors = ["#EF7373", "#F2C84B"] + (["#7FC87F"] if has_narrow else [])
 
 plt.rcParams.update({
     "font.size": 18,

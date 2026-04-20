@@ -30,9 +30,9 @@ plt.rcParams.update({
 })
 
 TOTAL = 1.0
-COLOR_A = "#2a9d8f"
-COLOR_U = "#1f6fb4"
-COLOR_T = "#d64545"
+COLOR_A = "#7FC87F"
+COLOR_U = "#F2C84B"
+COLOR_T = "#EF7373"
 
 scenarios = [
     {

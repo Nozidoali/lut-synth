@@ -53,11 +53,11 @@ plt.rcParams.update({
 })
 
 STRATEGY_STYLE = {
-    "uniform":      {"color": "#4a4a4a", "hatch": None},
-    "front_heavy":  {"color": "#1f6fb4", "hatch": None},
-    "back_heavy":   {"color": "#d64545", "hatch": None},
-    "linear_up":    {"color": "#2a9d8f", "hatch": None},
-    "linear_down":  {"color": "#9b5de5", "hatch": None},
+    "uniform":      {"color": "#B0B0B0", "hatch": None},
+    "front_heavy":  {"color": "#EF7373", "hatch": None},
+    "back_heavy":   {"color": "#7FC87F", "hatch": None},
+    "linear_up":    {"color": "#F2C84B", "hatch": None},
+    "linear_down":  {"color": "#6B9AC4", "hatch": None},
 }
 
 
@@ -203,8 +203,8 @@ def fig_ftqc_regime():
     p_phys_list = [1e-4, 1e-3, 3e-3, 1e-2]
     Q = 16
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.8))
-    p_colors = {1e-4: "#1f6fb4", 1e-3: "#2a9d8f",
-                3e-3: "#d64545", 1e-2: "#9b5de5"}
+    p_colors = {1e-4: "#6B9AC4", 1e-3: "#7FC87F",
+                3e-3: "#F2C84B", 1e-2: "#EF7373"}
     p_labels = {1e-4: r"$p_\mathrm{phys}{=}10^{-4}$",
                 1e-3: r"$p_\mathrm{phys}{=}10^{-3}$",
                 3e-3: r"$p_\mathrm{phys}{=}3{\times}10^{-3}$",
