@@ -235,7 +235,7 @@ def fig_ftqc_regime():
                 ax.set_ylabel(r"required surface-code distance $d$")
                 ax.set_title(r"code distance vs $\varepsilon_A$")
             else:
-                ax.set_ylabel(r"$V_\mathrm{factor}(\varepsilon_B)/V_\mathrm{factor}(0)$")
+                ax.set_ylabel(r"$V_\mathrm{factor}(\varepsilon_A)/V_\mathrm{factor}(0)$")
                 ax.axhline(1, color="gray", ls="--", lw=0.8, alpha=0.6)
                 ax.set_title(r"total factoring-cost ratio")
             ax.grid(True, alpha=0.25)
@@ -260,10 +260,22 @@ def fig_period_damage():
                    key=lambda p: float(
                        p.stem.replace("chained_eb", "").replace(".f", "") or 0))
     if not dumps: return
-    cmap = plt.get_cmap("viridis")
-    colors = [cmap(i / max(1, len(dumps) - 1)) for i in range(len(dumps))]
 
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4.2))
+    def _eb(p):
+        return float(p.stem.replace("chained_eb", "").replace(".f", "") or 0)
+    wanted = [0.0, 0.3, 1.0, 2.0]
+    tol = 0.05
+    dumps = [min(dumps, key=lambda p: abs(_eb(p) - t))
+             for t in wanted
+             if any(abs(_eb(p) - t) <= tol for p in dumps)]
+    dumps = list(dict.fromkeys(dumps))
+
+    palette = ["#6B9AC4", "#7FC87F", "#F2C84B", "#EF7373"]
+    linestyles = ["-", "--", "-.", ":"]
+    colors = [palette[i % len(palette)] for i in range(len(dumps))]
+    lss = [linestyles[i % len(linestyles)] for i in range(len(dumps))]
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.4))
     r_star = 12
     for i, d in enumerate(dumps):
         data = _load(d)
@@ -273,12 +285,14 @@ def fig_period_damage():
         L = len(f)
         show = min(L, 4 * r_star)
 
-        axes[0].plot(range(show), f[:show], "o-", ms=4, lw=1.0,
-                     color=colors[i], label=rf"$\varepsilon_B{{=}}{eb}$")
+        axes[0].plot(range(show), f[:show], marker="o", ms=4,
+                     lw=1.6, ls=lss[i], color=colors[i],
+                     label=rf"$\varepsilon_A{{=}}{eb}$")
 
         r_max = min(L - 1, 4 * r_star)
         corrs = [float((f[: L - r] == f[r:]).mean()) for r in range(1, r_max + 1)]
-        axes[1].plot(range(1, r_max + 1), corrs, color=colors[i], lw=1.4)
+        axes[1].plot(range(1, r_max + 1), corrs,
+                     lw=2.0, ls=lss[i], color=colors[i])
 
         arr = f
         vals, counts = np.unique(arr, return_counts=True)
@@ -289,11 +303,12 @@ def fig_period_damage():
         amp = np.fft.fft(ind) / math.sqrt(L)
         prob = (np.abs(amp) ** 2); prob = prob / prob.sum()
         j_plot = min(L, 4 * (L // r_star) + 1)
-        axes[2].plot(range(j_plot), prob[:j_plot], color=colors[i], lw=1.2)
+        axes[2].plot(range(j_plot), prob[:j_plot],
+                     lw=1.8, ls=lss[i], color=colors[i])
 
     for k in range(r_star, min(L - 1, 4 * r_star) + 1, r_star):
         axes[0].axvline(k, color="gray", lw=0.5, alpha=0.5)
-        axes[1].axvline(k, color="#d64545", lw=1.0, alpha=0.55, ls="--")
+        axes[1].axvline(k, color="#6c6c6c", lw=1.0, alpha=0.55, ls=":")
     axes[0].set_xlabel(r"input $x$")
     axes[0].set_ylabel(r"$\tilde{f}(x)$")
     axes[0].set_title(r"approximated sequence")
@@ -307,9 +322,11 @@ def fig_period_damage():
     axes[2].set_title(r"QFT spectrum (log scale)")
     for ax in axes:
         ax.grid(True, alpha=0.25); ax.set_axisbelow(True)
-    axes[0].legend(ncol=2, loc="upper right", frameon=True, framealpha=0.9,
-                   edgecolor="0.7")
-    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=len(dumps),
+               bbox_to_anchor=(0.5, -0.04), frameon=True, framealpha=0.9,
+               edgecolor="0.7")
+    fig.tight_layout(rect=[0, 0.08, 1, 1])
     fig.savefig(OUT / "fig6_period_damage.png", bbox_inches="tight")
     fig.savefig(OUT / "fig6_period_damage.pdf", bbox_inches="tight")
     plt.close(fig); print(f"wrote {OUT / 'fig6_period_damage.png'}")
