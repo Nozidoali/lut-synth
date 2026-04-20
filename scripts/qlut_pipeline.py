@@ -87,10 +87,19 @@ def _save_json(path: Path, data: Any) -> None:
         json.dump(data, f, indent=2, cls=_NumpyEncoder)
 
 
-def create_problem(system: str, **kwargs: Any) -> dict[str, Any]:
-    """Stage 1: Build molecule and compute Hamiltonian."""
+def create_problem(system: str, basis: str | None = None,
+                   **kwargs: Any) -> dict[str, Any]:
+    """Stage 1: Build molecule and compute Hamiltonian.
+
+    If ``basis`` is given, overrides the default basis from ``get_molecule``
+    (H4 defaults to cc-pVTZ; smaller bases like 'sto-3g' are useful when
+    rank-deficient THC fallbacks would otherwise produce non-convergent CCSD).
+    """
     ccsd_t = _import_ccsd_t()
     mol = ccsd_t.get_molecule(system, **kwargs)
+    if basis is not None and basis != mol.basis:
+        mol.basis = basis
+        mol.build()
     ham = ccsd_t.get_hamiltonian(mol)
     return ham
 
@@ -365,10 +374,18 @@ def approximate_qluts(
     error_bound: float,
     approx_tt_binary: str | Path,
     time_limit: float = 60.0,
+    method: str = "ilp",
+    approx_xag_binary: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Stage 4: Approximate each .tt file using the C++ approx-tt tool."""
+    """Stage 4: Approximate each .tt file.
+
+    method='ilp' uses the Gurobi-based approx-tt tool (default).
+    method='narrow' uses the AND-targeted XAG heuristic approx-xag,
+    which requires no solver and directly minimizes AND count.
+    """
     approx_dir = tt_dir / "approx"
     approx_dir.mkdir(parents=True, exist_ok=True)
+    assert method in ("ilp", "narrow"), f"unknown method: {method}"
 
     metadata_path = tt_dir / "extraction_metadata.json"
     node_bitsizes: dict[str, list[int]] = {}
@@ -410,23 +427,39 @@ def approximate_qluts(
             results.append({"solved": True, "bits_flipped": 0, "filename": tt_file.name})
             continue
 
-        cmd = [
-            str(approx_tt_binary),
-            "--input", str(tt_file),
-            "--output", str(approx_file),
-            "--error-bound", str(error_bound),
-            "--time-limit", str(time_limit),
-        ]
-        bitsizes = node_bitsizes.get(tt_file.name, [])
-        if bitsizes:
-            cmd.extend(["--registers", ",".join(str(b) for b in bitsizes)])
-        lock = node_lock_indices.get(tt_file.name, [])
-        if lock:
-            cmd.extend(["--lock", ",".join(str(i) for i in lock)])
+        if method == "ilp":
+            cmd = [
+                str(approx_tt_binary),
+                "--input", str(tt_file),
+                "--output", str(approx_file),
+                "--error-bound", str(error_bound),
+                "--time-limit", str(time_limit),
+            ]
+            bitsizes = node_bitsizes.get(tt_file.name, [])
+            if bitsizes:
+                cmd.extend(["--registers", ",".join(str(b) for b in bitsizes)])
+            lock = node_lock_indices.get(tt_file.name, [])
+            if lock:
+                cmd.extend(["--lock", ",".join(str(i) for i in lock)])
+        else:
+            xag_bin = approx_xag_binary or (
+                Path(approx_tt_binary).parent / "approx-xag"
+            )
+            cmd = [
+                str(xag_bin),
+                "--input", str(tt_file),
+                "--output", str(approx_file),
+                "--method", "narrow",
+                "--error-bound", str(error_bound),
+            ]
+            lock = node_lock_indices.get(tt_file.name, [])
+            if lock:
+                cmd.extend(["--lock", ",".join(str(i) for i in lock)])
 
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
-            print(f"Warning: approx-tt failed on {tt_file.name}: {proc.stderr}")
+            tool_name = "approx-tt" if method == "ilp" else "approx-xag"
+            print(f"Warning: {tool_name} failed on {tt_file.name}: {proc.stderr}")
             continue
 
         stats = json.loads(proc.stdout.strip())
@@ -627,7 +660,10 @@ def run_pipeline(
     output_dir: Path,
     eps: float = 1e-2,
     approx_tt_binary: str | Path | None = None,
+    approx_xag_binary: str | Path | None = None,
     time_limit: float = 60.0,
+    method: str = "ilp",
+    basis: str | None = None,
     **system_kwargs: Any,
 ) -> dict[str, Any]:
     """Run the full approximate QLUT evaluation pipeline."""
@@ -636,9 +672,11 @@ def run_pipeline(
 
     if approx_tt_binary is None:
         approx_tt_binary = _project_root / "build" / "approx-tt"
+    if approx_xag_binary is None:
+        approx_xag_binary = _project_root / "build" / "approx-xag"
 
     print("Stage 1: Building molecule and Hamiltonian...")
-    ham = create_problem(system, **system_kwargs)
+    ham = create_problem(system, basis=basis, **system_kwargs)
 
     print("Stage 2: Computing THC decomposition...")
     thc_ham = compute_thc(ham, thc_rank, system, output_dir)
@@ -648,9 +686,10 @@ def run_pipeline(
     tt_dir = output_dir / "truth_tables"
     extraction = extract_qluts(thc_ham, num_bits_state_prep, eps, tt_dir)
 
-    print("Stage 4: Approximating truth tables...")
+    print(f"Stage 4: Approximating truth tables (method={method})...")
     approx_result = approximate_qluts(
-        tt_dir, error_bound, approx_tt_binary, time_limit
+        tt_dir, error_bound, approx_tt_binary, time_limit,
+        method=method, approx_xag_binary=approx_xag_binary,
     )
     approx_dir = Path(approx_result["approx_dir"])
 
@@ -726,10 +765,21 @@ def parse_args() -> argparse.Namespace:
         "--approx-tt", type=Path, help="Path to approx-tt binary"
     )
     parser.add_argument(
+        "--approx-xag", type=Path, help="Path to approx-xag binary"
+    )
+    parser.add_argument(
+        "--method", choices=["ilp", "narrow"], default="ilp",
+        help="Approximator: 'ilp' (approx-tt, Gurobi) or 'narrow' (approx-xag, heuristic)"
+    )
+    parser.add_argument(
         "--time-limit", type=float, default=60.0, help="ILP time limit (sec)"
     )
     parser.add_argument(
         "--nh", type=int, help="Number of hydrogens (for H_chain)"
+    )
+    parser.add_argument(
+        "--basis", type=str, default=None,
+        help="Override basis set (e.g. 'sto-3g' to shrink nmo for rank-limited THC)"
     )
     return parser.parse_args()
 
@@ -748,7 +798,10 @@ def main() -> None:
         output_dir=args.output_dir,
         eps=args.eps,
         approx_tt_binary=args.approx_tt,
+        approx_xag_binary=args.approx_xag,
         time_limit=args.time_limit,
+        method=args.method,
+        basis=args.basis,
         **system_kwargs,
     )
 
