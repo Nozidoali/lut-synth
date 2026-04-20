@@ -6,6 +6,8 @@
 #include <mockturtle/algorithms/cleanup.hpp>
 #include <mockturtle/algorithms/simulation.hpp>
 #include <mockturtle/networks/xag.hpp>
+#include <mockturtle/utils/node_map.hpp>
+#include <mockturtle/views/topo_view.hpp>
 
 #include <cassert>
 #include <cstdint>
@@ -102,6 +104,68 @@ try_split(std::vector<kitty::dynamic_truth_table> const &tts, int k) {
     return {std::move(network), and_count};
 }
 
+/* Rebuild ``permuted`` so its PI order matches the original (un-permuted)
+ * variable order. ``permuted`` was synthesized from tts that had been
+ * passed through ``permute_all_variables(tts, order)``; its PI_j computes
+ * variable j of the permuted tts, which is variable ``order[j]`` of the
+ * original tts. To undo this, route ``permuted``'s PI_j into the new
+ * network's new_pi[order[j]]. Without this rewrite, multi-start synthesis
+ * returns an XAG that evaluates the wrong function. */
+mockturtle::xag_network rewire_pis_with_order(
+    mockturtle::xag_network const &permuted,
+    std::vector<uint32_t> const &order) {
+    using Net = mockturtle::xag_network;
+    using signal = Net::signal;
+    using node = Net::node;
+
+    Net result;
+    uint32_t const num_pis = static_cast<uint32_t>(order.size());
+    std::vector<signal> new_pis(num_pis);
+    for (uint32_t i = 0; i < num_pis; ++i) {
+        new_pis[i] = result.create_pi();
+    }
+
+    mockturtle::unordered_node_map<signal, Net> node_to_sig(permuted);
+    node_to_sig[permuted.get_node(permuted.get_constant(false))] =
+        result.get_constant(false);
+    if (permuted.get_node(permuted.get_constant(true)) !=
+        permuted.get_node(permuted.get_constant(false))) {
+        node_to_sig[permuted.get_node(permuted.get_constant(true))] =
+            result.get_constant(true);
+    }
+
+    uint32_t pi_idx = 0;
+    permuted.foreach_pi([&](auto pi_node) {
+        node_to_sig[pi_node] = new_pis[order[pi_idx]];
+        ++pi_idx;
+    });
+
+    mockturtle::topo_view<Net> topo(permuted);
+    topo.foreach_node([&](auto n) {
+        if (permuted.is_constant(n) || permuted.is_pi(n)) return;
+        std::vector<signal> children;
+        permuted.foreach_fanin(n, [&](auto f) {
+            signal c = node_to_sig[permuted.get_node(f)];
+            if (permuted.is_complemented(f)) c = !c;
+            children.push_back(c);
+        });
+        signal out;
+        if (permuted.is_and(n)) {
+            out = result.create_and(children[0], children[1]);
+        } else {
+            out = result.create_xor(children[0], children[1]);
+        }
+        node_to_sig[n] = out;
+    });
+
+    permuted.foreach_po([&](auto f) {
+        signal c = node_to_sig[permuted.get_node(f)];
+        if (permuted.is_complemented(f)) c = !c;
+        result.create_po(c);
+    });
+    return mockturtle::cleanup_dangling(result);
+}
+
 } // namespace
 
 mockturtle::xag_network synthesize_selectswap_internal(std::vector<kitty::dynamic_truth_table> const &tts,
@@ -156,7 +220,9 @@ mockturtle::xag_network synthesize_selectswap(std::vector<kitty::dynamic_truth_t
     for (uint32_t trial = 0; trial < num_random_starts; ++trial) {
         std::shuffle(order.begin(), order.end(), rng);
         std::vector<kitty::dynamic_truth_table> permuted_tts = ss_detail::permute_all_variables(tts, order);
-        mockturtle::xag_network candidate = synthesize_selectswap_internal(permuted_tts, num_vars, k);
+        mockturtle::xag_network candidate_perm =
+            synthesize_selectswap_internal(permuted_tts, num_vars, k);
+        mockturtle::xag_network candidate = rewire_pis_with_order(candidate_perm, order);
         uint32_t and_count = count_ands(candidate);
 
         if (and_count < best_and) {
@@ -181,7 +247,8 @@ mockturtle::xag_network synthesize_selectswap_with_order(std::vector<kitty::dyna
     assert(var_order.size() == static_cast<size_t>(num_vars));
 
     std::vector<kitty::dynamic_truth_table> permuted_tts = ss_detail::permute_all_variables(tts, var_order);
-    return synthesize_selectswap_internal(permuted_tts, num_vars, k);
+    mockturtle::xag_network permuted = synthesize_selectswap_internal(permuted_tts, num_vars, k);
+    return rewire_pis_with_order(permuted, var_order);
 }
 
 uint32_t count_ss_ands_with_order(std::vector<kitty::dynamic_truth_table> const &tts,
