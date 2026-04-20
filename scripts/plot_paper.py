@@ -271,12 +271,13 @@ def fig_period_damage():
     dumps = list(dict.fromkeys(dumps))
 
     palette = ["#6B9AC4", "#7FC87F", "#F2C84B", "#EF7373"]
-    linestyles = ["-", "--", "-.", ":"]
     colors = [palette[i % len(palette)] for i in range(len(dumps))]
-    lss = [linestyles[i % len(linestyles)] for i in range(len(dumps))]
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.4))
     r_star = 12
+    nrows = len(dumps)
+    fig, axes = plt.subplots(nrows, 3, figsize=(13, 2.8 * nrows),
+                             squeeze=False)
+
     for i, d in enumerate(dumps):
         data = _load(d)
         if not data: continue
@@ -284,49 +285,48 @@ def fig_period_damage():
         f = np.array(data["approx_f"])
         L = len(f)
         show = min(L, 4 * r_star)
+        col = colors[i]
 
-        axes[0].plot(range(show), f[:show], marker="o", ms=4,
-                     lw=1.6, ls=lss[i], color=colors[i],
-                     label=rf"$\varepsilon_A{{=}}{eb}$")
+        axes[i][0].plot(range(show), f[:show], marker="o", ms=4,
+                        lw=1.6, color=col)
 
         r_max = min(L - 1, 4 * r_star)
         corrs = [float((f[: L - r] == f[r:]).mean()) for r in range(1, r_max + 1)]
-        axes[1].plot(range(1, r_max + 1), corrs,
-                     lw=2.0, ls=lss[i], color=colors[i])
+        axes[i][1].plot(range(1, r_max + 1), corrs, lw=2.0, color=col)
 
-        arr = f
-        vals, counts = np.unique(arr, return_counts=True)
+        vals, counts = np.unique(f, return_counts=True)
         v = int(vals[np.argmax(counts)])
-        mask = (arr == v); k = int(mask.sum())
+        mask = (f == v); k = int(mask.sum())
         ind = np.zeros(L, dtype=np.float64)
         ind[mask] = 1.0 / math.sqrt(k)
         amp = np.fft.fft(ind) / math.sqrt(L)
         prob = (np.abs(amp) ** 2); prob = prob / prob.sum()
         j_plot = min(L, 4 * (L // r_star) + 1)
-        axes[2].plot(range(j_plot), prob[:j_plot],
-                     lw=1.8, ls=lss[i], color=colors[i])
+        axes[i][2].plot(range(j_plot), prob[:j_plot], lw=1.8, color=col)
 
-    for k in range(r_star, min(L - 1, 4 * r_star) + 1, r_star):
-        axes[0].axvline(k, color="gray", lw=0.5, alpha=0.5)
-        axes[1].axvline(k, color="#6c6c6c", lw=1.0, alpha=0.55, ls=":")
-    axes[0].set_xlabel(r"input $x$")
-    axes[0].set_ylabel(r"$\tilde{f}(x)$")
-    axes[0].set_title(r"approximated sequence")
-    axes[1].set_xlabel(r"lag $r$")
-    axes[1].set_ylabel(r"autocorrelation $C(r)$")
-    axes[1].set_ylim(0, 1.05)
-    axes[1].set_title(r"period autocorrelation")
-    axes[2].set_yscale("log")
-    axes[2].set_xlabel(r"QFT index $j$")
-    axes[2].set_ylabel(r"$|\mathrm{amp}(j)|^{2}$")
-    axes[2].set_title(r"QFT spectrum (log scale)")
-    for ax in axes:
-        ax.grid(True, alpha=0.25); ax.set_axisbelow(True)
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=len(dumps),
-               bbox_to_anchor=(0.5, -0.04), frameon=True, framealpha=0.9,
-               edgecolor="0.7")
-    fig.tight_layout(rect=[0, 0.08, 1, 1])
+        for k in range(r_star, min(L - 1, 4 * r_star) + 1, r_star):
+            axes[i][0].axvline(k, color="gray", lw=0.5, alpha=0.5)
+            axes[i][1].axvline(k, color="#6c6c6c", lw=1.0, alpha=0.55,
+                               ls=":")
+
+        axes[i][0].set_ylabel(rf"$\varepsilon_A{{=}}{eb}$"
+                              "\n" r"$\tilde{f}(x)$",
+                              fontsize=16)
+        axes[i][1].set_ylim(0, 1.05)
+        axes[i][2].set_yscale("log")
+        for ax in axes[i]:
+            ax.grid(True, alpha=0.25); ax.set_axisbelow(True)
+
+    axes[0][0].set_title(r"approximated sequence")
+    axes[0][1].set_title(r"period autocorrelation")
+    axes[0][2].set_title(r"QFT spectrum (log scale)")
+    axes[-1][0].set_xlabel(r"input $x$")
+    axes[-1][1].set_xlabel(r"lag $r$")
+    axes[-1][2].set_xlabel(r"QFT index $j$")
+    axes[0][1].set_ylabel(r"autocorrelation $C(r)$")
+    axes[0][2].set_ylabel(r"$|\mathrm{amp}(j)|^{2}$")
+
+    fig.tight_layout()
     fig.savefig(OUT / "fig6_period_damage.png", bbox_inches="tight")
     fig.savefig(OUT / "fig6_period_damage.pdf", bbox_inches="tight")
     plt.close(fig); print(f"wrote {OUT / 'fig6_period_damage.png'}")
