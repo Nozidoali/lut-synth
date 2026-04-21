@@ -1,5 +1,6 @@
 # Build
 build/
+build-debug/
 
 # IDE / editor
 .cache/

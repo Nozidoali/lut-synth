@@ -1,0 +1,81 @@
+{
+  "tag": "femoco_n12_ls",
+  "amps_source": "/tmp/qspc/benchmarks/thc/thc_li_approximated_M350_nonorthogonal_prepare.json",
+  "n_bits": 12,
+  "precision_bits": 8,
+  "N": 4096,
+  "M": 4090,
+  "baseline": "lutsynth",
+  "ss_starts": 4,
+  "use_dont_care": false,
+  "keep_and_baseline": 367,
+  "alias_and_baseline": 406,
+  "quantization_infidelity": 2.3678834457641074e-05,
+  "results": [
+    {
+      "eb": 0.0,
+      "keep_and_before": 367,
+      "keep_and_after": 367,
+      "alias_and_before": 406,
+      "alias_and_after": 406,
+      "keep_lacs": 0,
+      "alias_lacs": 0,
+      "fidelity": 0.9999763211655424,
+      "infidelity": 2.3678834457641074e-05,
+      "t_narrow_s": 9.230993747711182,
+      "t_eval_s": 30.579431295394897
+    },
+    {
+      "eb": 0.05,
+      "keep_and_before": 367,
+      "keep_and_after": 361,
+      "alias_and_before": 406,
+      "alias_and_after": 405,
+      "keep_lacs": 6,
+      "alias_lacs": 1,
+      "fidelity": 0.9922056650230208,
+      "infidelity": 0.007794334976979234,
+      "t_narrow_s": 30.111366033554077,
+      "t_eval_s": 29.74441695213318
+    },
+    {
+      "eb": 0.1,
+      "keep_and_before": 367,
+      "keep_and_after": 361,
+      "alias_and_before": 406,
+      "alias_and_after": 403,
+      "keep_lacs": 6,
+      "alias_lacs": 3,
+      "fidelity": 0.9859146476659233,
+      "infidelity": 0.014085352334076706,
+      "t_narrow_s": 35.82815456390381,
+      "t_eval_s": 29.229835033416748
+    },
+    {
+      "eb": 0.2,
+      "keep_and_before": 367,
+      "keep_and_after": 363,
+      "alias_and_before": 406,
+      "alias_and_after": 398,
+      "keep_lacs": 4,
+      "alias_lacs": 8,
+      "fidelity": 0.9738417559187991,
+      "infidelity": 0.026158244081200932,
+      "t_narrow_s": 46.138901472091675,
+      "t_eval_s": 28.829073905944824
+    },
+    {
+      "eb": 0.3,
+      "keep_and_before": 367,
+      "keep_and_after": 359,
+      "alias_and_before": 406,
+      "alias_and_after": 401,
+      "keep_lacs": 8,
+      "alias_lacs": 5,
+      "fidelity": 0.9649962268035708,
+      "infidelity": 0.03500377319642922,
+      "t_narrow_s": 45.444692850112915,
+      "t_eval_s": 28.972709894180298
+    }
+  ]
+}
