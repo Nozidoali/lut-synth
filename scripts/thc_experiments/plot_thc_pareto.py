@@ -32,11 +32,14 @@ def main():
                    for r in s["results"]]
         saved_pct = [100.0 * (base_and - a) / base_and for a in and_sum]
         infid = [max(r["infidelity"], 1e-8) for r in s["results"]]
-        label = f"{s['tag']} (N={s['N']}, M={s['M']})"
+        baseline = s.get("baseline", "qsp")
+        ls = "-" if baseline == "lutsynth" else "--"
+        label = (f"{s['tag']} ({baseline} baseline, "
+                 f"N={s['N']}, {base_and} AND)")
         ax_left.plot([r["eb"] for r in s["results"]], infid,
-                     marker="o", lw=1.6, color=c, label=label)
+                     marker="o", lw=1.6, ls=ls, color=c, label=label)
         ax_right.plot(saved_pct, infid, marker="o", lw=1.6,
-                      color=c, label=label)
+                      ls=ls, color=c, label=label)
 
     for ax in (ax_left, ax_right):
         ax.set_yscale("log")

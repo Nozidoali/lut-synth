@@ -222,6 +222,7 @@ NarrowResubResult narrow_and_resub(Ntk const& input,
         result.network.substitute_node(best.lac.target, repl);
         accumulated += best.error_delta;
         ++result.stats.lacs_applied;
+        result.network = mockturtle::cleanup_dangling(result.network);
     }
 
     result.network = mockturtle::cleanup_dangling(result.network);

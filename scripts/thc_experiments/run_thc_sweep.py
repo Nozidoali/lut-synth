@@ -55,14 +55,25 @@ def sample_amplitudes(amps_path: str, n_bits: int):
     return {k: v / norm for k, v in amps.items()}, N
 
 
-def run_approx_xag(binary: str, in_v: str, out_v: str, eb: float,
-                    care_file: str = "") -> dict:
-    cmd = [binary, "--input-verilog", in_v, "--error-bound", str(eb),
+def run_approx_xag(binary: str, in_path: str, out_v: str, eb: float,
+                    care_file: str = "", extra_args=None) -> dict:
+    in_flag = "--input-verilog" if in_path.endswith(".v") else "--input"
+    cmd = [binary, in_flag, in_path, "--error-bound", str(eb),
            "--method", "narrow", "--output-verilog", out_v]
+    if extra_args:
+        cmd += list(extra_args)
     if care_file:
         cmd += ["--care-patterns", care_file]
     out = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return json.loads(out.stdout.strip())
+
+
+def write_multi_tt(data, data_bits: int, path: str) -> None:
+    N = len(data)
+    with open(path, "w") as f:
+        for i in range(data_bits):
+            bits = "".join(str((data[a] >> i) & 1) for a in range(N))
+            f.write(bits + "\n")
 
 
 def main():
@@ -78,6 +89,13 @@ def main():
                     default=str(ROOT / "build" / "approx-xag"))
     ap.add_argument("--outdir", type=str,
                     default=str(ROOT / "data" / "thc_fidelity"))
+    ap.add_argument("--baseline", type=str, default="qsp",
+                    choices=["qsp", "lutsynth"],
+                    help="qsp = qsp-compilation SelectSwap (scalable); "
+                         "lutsynth = lut-synth C++ SSSynthesizer (tighter, "
+                         "but only viable for small n)")
+    ap.add_argument("--ss-starts", type=int, default=4,
+                    help="num_random_starts for lut-synth SSSynthesizer")
     ap.add_argument("--use-dont-care", action="store_true",
                     help="For the alias QROM, pass only rows with "
                          "keep[j] < 2^b - 1 as care patterns. Rows where "
@@ -110,29 +128,47 @@ def main():
     infid_quant = 1.0 - bhattacharyya_fidelity(probs, p_prep_exact)
     print(f"  quantization-only infidelity: {infid_quant:.4e}")
 
-    keep_v = str(outdir / "keep.v")
-    alias_v = str(outdir / "alias.v")
-    t0 = time.time()
-    keep_stats = run_converter(
-        keep_exact, args.n_bits, args.precision_bits, args.qspc, keep_v)
-    alias_stats = run_converter(
-        alias_exact, args.n_bits, args.n_bits, args.qspc, alias_v)
-    t_synth = time.time() - t0
-    print(f"  keep XAG: AND={keep_stats['and_count']} "
-          f"XOR={keep_stats['xor_count']}")
-    print(f"  alias XAG: AND={alias_stats['and_count']} "
-          f"XOR={alias_stats['xor_count']}")
-    print(f"  synth/convert time: {t_synth:.1f}s")
+    extra = []
+    if args.baseline == "qsp":
+        keep_src = str(outdir / "keep.v")
+        alias_src = str(outdir / "alias.v")
+        t0 = time.time()
+        keep_stats = run_converter(
+            keep_exact, args.n_bits, args.precision_bits, args.qspc, keep_src)
+        alias_stats = run_converter(
+            alias_exact, args.n_bits, args.n_bits, args.qspc, alias_src)
+        t_synth = time.time() - t0
+        keep_base_and = keep_stats["and_count"]
+        alias_base_and = alias_stats["and_count"]
+    else:
+        keep_src = str(outdir / "keep.tt")
+        alias_src = str(outdir / "alias.tt")
+        write_multi_tt(keep_exact, args.precision_bits, keep_src)
+        write_multi_tt(alias_exact, args.n_bits, alias_src)
+        extra = ["--num-random-starts", str(args.ss_starts), "--seed", "1"]
+        t0 = time.time()
+        k0 = run_approx_xag(args.approx_xag, keep_src,
+                            str(outdir / "keep_base.v"), 0.0,
+                            extra_args=extra)
+        a0 = run_approx_xag(args.approx_xag, alias_src,
+                            str(outdir / "alias_base.v"), 0.0,
+                            extra_args=extra)
+        keep_base_and = k0["and_before"]
+        alias_base_and = a0["and_before"]
+        t_synth = time.time() - t0
+    print(f"  baseline={args.baseline} "
+          f"keep AND={keep_base_and} alias AND={alias_base_and} "
+          f"(synth {t_synth:.1f}s)")
 
     results = []
     for eb in args.ebs:
         keep_eb = str(outdir / f"keep_eb{eb}.v")
         alias_eb = str(outdir / f"alias_eb{eb}.v")
         t0 = time.time()
-        k_res = run_approx_xag(args.approx_xag, keep_v, keep_eb, eb,
-                                keep_care_file)
-        a_res = run_approx_xag(args.approx_xag, alias_v, alias_eb, eb,
-                                alias_care_file)
+        k_res = run_approx_xag(args.approx_xag, keep_src, keep_eb, eb,
+                                keep_care_file, extra_args=extra)
+        a_res = run_approx_xag(args.approx_xag, alias_src, alias_eb, eb,
+                                alias_care_file, extra_args=extra)
         t_narrow = time.time() - t0
 
         t0 = time.time()
@@ -169,9 +205,11 @@ def main():
         "precision_bits": args.precision_bits,
         "N": N,
         "M": len(amps),
+        "baseline": args.baseline,
+        "ss_starts": args.ss_starts if args.baseline == "lutsynth" else None,
         "use_dont_care": bool(args.use_dont_care),
-        "keep_and_baseline": keep_stats["and_count"],
-        "alias_and_baseline": alias_stats["and_count"],
+        "keep_and_baseline": keep_base_and,
+        "alias_and_baseline": alias_base_and,
         "quantization_infidelity": infid_quant,
         "results": results,
     }
