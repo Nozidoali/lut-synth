@@ -168,7 +168,12 @@ NarrowResubResult narrow_and_resub(Ntk const& input,
         ++iteration;
 
         IntegerEstimator estimator(params.num_patterns, params.seed, params.weights);
-        estimator.initialize(result.network);
+        if (params.care_patterns.empty()) {
+            estimator.initialize(result.network);
+        } else {
+            estimator.initialize_with_patterns(result.network,
+                                                params.care_patterns);
+        }
 
         std::vector<bool> locked_cone =
             compute_locked_cone(result.network, params.locked_outputs);

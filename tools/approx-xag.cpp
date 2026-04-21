@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -34,6 +35,7 @@ struct Args {
     bool disable_dont_care = false;
     bool verbose = false;
     std::vector<uint32_t> lock_indices;
+    std::string care_patterns_file;
     bool h4 = false;
     uint32_t rank = 0;
     uint32_t precision = 0;
@@ -77,6 +79,8 @@ Args parse_args(int argc, char* argv[]) {
                 args.lock_indices.push_back(
                     static_cast<uint32_t>(std::stoul(tok)));
             }
+        } else if (arg == "--care-patterns" && i + 1 < argc) {
+            args.care_patterns_file = argv[++i];
         } else if (arg == "--h4") {
             args.h4 = true;
         } else if (arg == "--rank" && i + 1 < argc) {
@@ -166,6 +170,18 @@ int main(int argc, char* argv[]) {
     double accumulated_error = 0.0;
     mockturtle::xag_network approx_xag;
 
+    std::vector<uint64_t> care_patterns;
+    if (!args.care_patterns_file.empty()) {
+        std::ifstream in(args.care_patterns_file);
+        if (!in) {
+            std::cerr << "Error: cannot open " << args.care_patterns_file
+                      << "\n";
+            return 1;
+        }
+        uint64_t v;
+        while (in >> v) care_patterns.push_back(v);
+    }
+
     if (args.method == "narrow") {
         lut_synth::approximate::NarrowResubParams params;
         params.error_bound = args.error_bound;
@@ -173,6 +189,7 @@ int main(int argc, char* argv[]) {
         params.seed = static_cast<uint32_t>(args.seed);
         params.locked_outputs = locked_outputs;
         params.max_integer_error_per_pattern = args.max_pattern_error;
+        params.care_patterns = care_patterns;
 
         lut_synth::approximate::NarrowResubResult result =
             lut_synth::approximate::narrow_and_resub(xag, params);

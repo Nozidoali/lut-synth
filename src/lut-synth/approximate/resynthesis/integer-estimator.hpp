@@ -34,6 +34,16 @@ public:
                      uint32_t exhaustive_threshold = 12);
 
     void initialize(Ntk const& ntk) override;
+    /*! \brief Initialize using explicit input patterns.
+     *
+     *  Each `addr_patterns[i]` is a PI assignment packed as an integer
+     *  (bit k = value of PI k). All patterns become equally-weighted care
+     *  patterns; don't-care inputs are the ones not in this list. Use when
+     *  the caller knows the set of "alive" input assignments (e.g., nonzero-
+     *  amplitude addresses of a QROM).
+     */
+    void initialize_with_patterns(Ntk const& ntk,
+                                   std::vector<uint64_t> const& addr_patterns);
     double estimate(LAC const& lac) override;
     uint64_t estimate_count(LAC const& lac) override;
     /*! \brief Max absolute integer deviation over simulation patterns for this LAC. */

@@ -55,9 +55,12 @@ def sample_amplitudes(amps_path: str, n_bits: int):
     return {k: v / norm for k, v in amps.items()}, N
 
 
-def run_approx_xag(binary: str, in_v: str, out_v: str, eb: float) -> dict:
+def run_approx_xag(binary: str, in_v: str, out_v: str, eb: float,
+                    care_file: str = "") -> dict:
     cmd = [binary, "--input-verilog", in_v, "--error-bound", str(eb),
            "--method", "narrow", "--output-verilog", out_v]
+    if care_file:
+        cmd += ["--care-patterns", care_file]
     out = subprocess.run(cmd, check=True, capture_output=True, text=True)
     return json.loads(out.stdout.strip())
 
@@ -75,6 +78,12 @@ def main():
                     default=str(ROOT / "build" / "approx-xag"))
     ap.add_argument("--outdir", type=str,
                     default=str(ROOT / "data" / "thc_fidelity"))
+    ap.add_argument("--use-dont-care", action="store_true",
+                    help="For the alias QROM, pass only rows with "
+                         "keep[j] < 2^b - 1 as care patterns. Rows where "
+                         "keep saturates are genuine alias-input DCs "
+                         "(the comparator always says 'keep' so alias[j] "
+                         "is never read).")
     args = ap.parse_args()
 
     outdir = Path(args.outdir) / args.tag
@@ -85,6 +94,18 @@ def main():
 
     probs = amplitudes_to_probs(amps, args.n_bits)
     keep_exact, alias_exact = build_alias_table(probs, args.precision_bits)
+
+    keep_care_file = ""
+    alias_care_file = ""
+    if args.use_dont_care:
+        max_val = (1 << args.precision_bits) - 1
+        alias_cares = [j for j in range(N) if keep_exact[j] < max_val]
+        alias_care_file = str(outdir / "alias_care.txt")
+        Path(alias_care_file).write_text(
+            "\n".join(str(a) for a in alias_cares) + "\n")
+        print(f"  alias-QROM care patterns: {len(alias_cares)} / {N} "
+              f"({100*(N-len(alias_cares))/N:.1f}% DC)")
+
     p_prep_exact = prepared_probs(keep_exact, alias_exact, args.precision_bits)
     infid_quant = 1.0 - bhattacharyya_fidelity(probs, p_prep_exact)
     print(f"  quantization-only infidelity: {infid_quant:.4e}")
@@ -108,8 +129,10 @@ def main():
         keep_eb = str(outdir / f"keep_eb{eb}.v")
         alias_eb = str(outdir / f"alias_eb{eb}.v")
         t0 = time.time()
-        k_res = run_approx_xag(args.approx_xag, keep_v, keep_eb, eb)
-        a_res = run_approx_xag(args.approx_xag, alias_v, alias_eb, eb)
+        k_res = run_approx_xag(args.approx_xag, keep_v, keep_eb, eb,
+                                keep_care_file)
+        a_res = run_approx_xag(args.approx_xag, alias_v, alias_eb, eb,
+                                alias_care_file)
         t_narrow = time.time() - t0
 
         t0 = time.time()
@@ -146,6 +169,7 @@ def main():
         "precision_bits": args.precision_bits,
         "N": N,
         "M": len(amps),
+        "use_dont_care": bool(args.use_dont_care),
         "keep_and_baseline": keep_stats["and_count"],
         "alias_and_baseline": alias_stats["and_count"],
         "quantization_infidelity": infid_quant,

@@ -28,6 +28,7 @@ struct NarrowResubParams {
     uint32_t max_iterations = 0;       /*!< 0 = unlimited */
     uint32_t max_integer_error_per_pattern = 0;  /*!< Reject LACs whose max single-pattern integer error exceeds this (0 = disabled) */
     std::vector<bool> locked_outputs;  /*!< Per-PO lock; ANDs reachable from any locked PO are skipped (empty = no lock) */
+    std::vector<uint64_t> care_patterns; /*!< If non-empty, the estimator is initialized on exactly these PI assignments (bit k = PI k). Other patterns are treated as don't cares. */
 };
 
 /*! \brief Statistics from a narrow AND-resub pass. */

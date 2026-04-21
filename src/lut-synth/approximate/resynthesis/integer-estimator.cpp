@@ -16,6 +16,38 @@ IntegerEstimator::IntegerEstimator(uint32_t num_patterns, uint32_t seed,
       accumulated_error_(0.0), accumulated_error_count_(0), num_bits_(0),
       ntk_(nullptr) {}
 
+namespace {
+
+void finalize_exact_integers(
+    mockturtle::xag_network const& ntk,
+    mockturtle::unordered_node_map<IntegerEstimator::TT,
+                                    mockturtle::xag_network>& tts,
+    std::vector<uint32_t>& po_nodes,
+    std::vector<bool>& po_complemented,
+    std::vector<uint32_t>& exact_integers,
+    uint64_t num_bits) {
+    po_nodes.clear();
+    po_complemented.clear();
+    ntk.foreach_po([&](auto const& f) {
+        po_nodes.push_back(ntk.get_node(f));
+        po_complemented.push_back(ntk.is_complemented(f));
+    });
+    uint32_t num_outputs = po_nodes.size();
+    exact_integers.resize(num_bits);
+    for (uint64_t x = 0; x < num_bits; ++x) {
+        uint32_t value = 0;
+        for (uint32_t i = 0; i < num_outputs; ++i) {
+            IntegerEstimator::TT const& tt = tts[po_nodes[i]];
+            bool bit = (tt._bits[x >> 6] >> (x & 0x3f)) & 1;
+            if (po_complemented[i]) bit = !bit;
+            if (bit) value |= (1u << (num_outputs - 1 - i));
+        }
+        exact_integers[x] = value;
+    }
+}
+
+} // namespace
+
 void IntegerEstimator::initialize(Ntk const& ntk) {
     ntk_ = &ntk;
     accumulated_error_ = 0.0;
@@ -45,28 +77,36 @@ void IntegerEstimator::initialize(Ntk const& ntk) {
         num_bits_ = sim.num_bits();
     }
 
-    po_nodes_.clear();
-    po_complemented_.clear();
-    ntk.foreach_po([&](auto const& f) {
-        po_nodes_.push_back(ntk.get_node(f));
-        po_complemented_.push_back(ntk.is_complemented(f));
-    });
+    finalize_exact_integers(ntk, *tts_, po_nodes_, po_complemented_,
+                             exact_integers_, num_bits_);
+}
 
-    uint32_t num_outputs = po_nodes_.size();
-    exact_integers_.resize(num_bits_);
+void IntegerEstimator::initialize_with_patterns(
+    Ntk const& ntk, std::vector<uint64_t> const& addr_patterns) {
+    ntk_ = &ntk;
+    accumulated_error_ = 0.0;
+    accumulated_error_count_ = 0;
 
-    for (uint64_t x = 0; x < num_bits_; ++x) {
-        uint32_t value = 0;
-        for (uint32_t i = 0; i < num_outputs; ++i) {
-            TT const& tt = (*tts_)[po_nodes_[i]];
-            bool bit = (tt._bits[x >> 6] >> (x & 0x3f)) & 1;
-            if (po_complemented_[i]) bit = !bit;
-            if (bit) {
-                value |= (1u << (num_outputs - 1 - i));
-            }
+    uint32_t const n = ntk.num_pis();
+    uint64_t const m = addr_patterns.size();
+    assert(m > 0);
+    tts_ = std::make_unique<mockturtle::unordered_node_map<TT, Ntk>>(ntk);
+
+    std::vector<kitty::partial_truth_table> patterns;
+    patterns.reserve(n);
+    for (uint32_t i = 0; i < n; ++i) {
+        kitty::partial_truth_table p(m);
+        for (uint64_t b = 0; b < m; ++b) {
+            if ((addr_patterns[b] >> i) & 1ull) kitty::set_bit(p, b);
         }
-        exact_integers_[x] = value;
+        patterns.push_back(std::move(p));
     }
+    mockturtle::partial_simulator sim(patterns);
+    mockturtle::simulate_nodes(ntk, *tts_, sim);
+    num_bits_ = m;
+
+    finalize_exact_integers(ntk, *tts_, po_nodes_, po_complemented_,
+                             exact_integers_, num_bits_);
 }
 
 IntegerEstimator::TT IntegerEstimator::compute_candidate_tt(LAC const& lac) const {
