@@ -1,0 +1,91 @@
+{
+  "tag": "h2o_n8",
+  "amps_source": "/tmp/qspc/benchmarks/thc/THC_water.json",
+  "n_bits": 8,
+  "precision_bits": 6,
+  "N": 256,
+  "M": 256,
+  "keep_and_baseline": 132,
+  "alias_and_baseline": 150,
+  "quantization_infidelity": 0.0007800892826763661,
+  "results": [
+    {
+      "eb": 0.0,
+      "keep_and_before": 132,
+      "keep_and_after": 72,
+      "alias_and_before": 150,
+      "alias_and_after": 81,
+      "keep_lacs": 0,
+      "alias_lacs": 0,
+      "fidelity": 0.9992199107173236,
+      "infidelity": 0.0007800892826763661,
+      "t_narrow_s": 0.07601451873779297,
+      "t_eval_s": 0.1150979995727539
+    },
+    {
+      "eb": 0.05,
+      "keep_and_before": 132,
+      "keep_and_after": 71,
+      "alias_and_before": 150,
+      "alias_and_after": 76,
+      "keep_lacs": 1,
+      "alias_lacs": 5,
+      "fidelity": 0.986081688655461,
+      "infidelity": 0.013918311344539025,
+      "t_narrow_s": 0.8559727668762207,
+      "t_eval_s": 0.11083698272705078
+    },
+    {
+      "eb": 0.1,
+      "keep_and_before": 132,
+      "keep_and_after": 69,
+      "alias_and_before": 150,
+      "alias_and_after": 73,
+      "keep_lacs": 3,
+      "alias_lacs": 8,
+      "fidelity": 0.9753517078730973,
+      "infidelity": 0.02464829212690267,
+      "t_narrow_s": 1.297853708267212,
+      "t_eval_s": 0.10783910751342773
+    },
+    {
+      "eb": 0.2,
+      "keep_and_before": 132,
+      "keep_and_after": 66,
+      "alias_and_before": 150,
+      "alias_and_after": 66,
+      "keep_lacs": 6,
+      "alias_lacs": 15,
+      "fidelity": 0.9491759727277487,
+      "infidelity": 0.050824027272251326,
+      "t_narrow_s": 2.0877795219421387,
+      "t_eval_s": 0.09542489051818848
+    },
+    {
+      "eb": 0.3,
+      "keep_and_before": 132,
+      "keep_and_after": 63,
+      "alias_and_before": 150,
+      "alias_and_after": 60,
+      "keep_lacs": 9,
+      "alias_lacs": 21,
+      "fidelity": 0.9182605365170294,
+      "infidelity": 0.08173946348297056,
+      "t_narrow_s": 2.6961851119995117,
+      "t_eval_s": 0.08624935150146484
+    },
+    {
+      "eb": 0.5,
+      "keep_and_before": 132,
+      "keep_and_after": 56,
+      "alias_and_before": 150,
+      "alias_and_after": 47,
+      "keep_lacs": 16,
+      "alias_lacs": 34,
+      "fidelity": 0.809188750451799,
+      "infidelity": 0.19081124954820095,
+      "t_narrow_s": 3.648411750793457,
+      "t_eval_s": 0.06444001197814941
+    }
+  ]
+}
