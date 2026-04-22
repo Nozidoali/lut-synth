@@ -78,6 +78,13 @@ def bhattacharyya_fidelity(p: List[float], q: List[float]) -> float:
     return acc * acc
 
 
+def total_variation(p: List[float], q: List[float]) -> float:
+    """L1/2 distance; matches the PREPARE-oracle coefficient-error
+    metric used in the Babbush/Lee THC qubitization analyses.
+    energy-error bound: |E - E_approx| <= 2 * lambda * TV."""
+    return 0.5 * sum(abs(a - b) for a, b in zip(p, q))
+
+
 _RE_MODULE = re.compile(r"module\s+\w+\s*\(([^)]*)\)\s*;")
 _RE_ASSIGN = re.compile(r"assign\s+(\S+)\s*=\s*(.+?)\s*;")
 _RE_INPUT = re.compile(r"input\s+([^;]+);")
