@@ -20,7 +20,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import subprocess
@@ -28,14 +27,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-_project_root = Path(__file__).resolve().parents[2]
+_project_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(_project_root / "third-party" / "qlut-benchmarks" / "src"))
-sys.path.insert(0, str(_project_root / "scripts" / "shors" / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from modexp import generate_modexp_truth_table
-from truthTable import TruthTable
+from modexp import generate_modexp_truth_table  # noqa: E402
+from truthTable import TruthTable  # noqa: E402
 
-from shor_lib import (
+from shor_lib import (  # noqa: E402
     decode_f_values,
     period_autocorrelation,
     period_snr,
@@ -244,64 +243,3 @@ def print_case_table(case: dict[str, Any]) -> None:
               f"{snr_str:>6} {margin:>6.2f} "
               f"{psr:>6.3f} {et_str:>10} {det_ok:>6}")
 
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--cases", nargs="+", default=None,
-        help="space-separated 'base,N,exp_bits' triples; default: preset")
-    parser.add_argument("--eb", nargs="+", type=float, default=None,
-        help="error bounds to sweep; default: 0 0.01 0.05 0.1 0.3 1.0")
-    parser.add_argument("--workdir", type=Path,
-        default=_project_root / "results" / "shor_e2e")
-    parser.add_argument("--synth", type=Path,
-        default=_project_root / "build" / "synth-tt")
-    parser.add_argument("--approx", type=Path,
-        default=_project_root / "build" / "approx-xag")
-    parser.add_argument("--output", type=Path, default=None,
-        help="JSON output path; default workdir/shor_e2e.json")
-    parser.add_argument("--max-pattern-error", type=int, default=0,
-        help="Cap LACs whose max single-pattern integer error exceeds this (0 = disabled)")
-    parser.add_argument("--methods", nargs="+",
-        default=["narrow"],
-        choices=["narrow", "resubals", "ilp"],
-        help="Approximators to compare per eb point")
-    parser.add_argument("--approx-tt", type=Path,
-        default=_project_root / "build" / "approx-tt",
-        help="Path to approx-tt binary (ILP)")
-    parser.add_argument("--num-shots", type=int, default=1000,
-        help="Shor's quantum shots simulated per eb point")
-    parser.add_argument("--num-random-starts", type=int, default=4,
-        help="SS synthesizer random starts for exact baseline (min across 1 seed)")
-    args = parser.parse_args()
-
-    if args.cases:
-        cases = []
-        for c in args.cases:
-            b, N, e = (int(x) for x in c.split(","))
-            cases.append((b, N, e))
-    else:
-        cases = DEFAULT_CASES
-    ebs = args.eb if args.eb is not None else DEFAULT_EB
-
-    args.workdir.mkdir(parents=True, exist_ok=True)
-    all_results: list[dict[str, Any]] = []
-    for base, N, exp_bits in cases:
-        case_dir = args.workdir / f"case_{base}_{N}_{exp_bits}"
-        result = run_case(base, N, exp_bits, ebs, case_dir,
-                          args.synth, args.approx, args.max_pattern_error,
-                          methods=args.methods, approx_tt_bin=args.approx_tt,
-                          num_shots=args.num_shots,
-                          num_random_starts=args.num_random_starts)
-        if result is None:
-            continue
-        all_results.append(result)
-        print_case_table(result)
-
-    out_path = args.output or (args.workdir / "shor_e2e.json")
-    out_path.write_text(json.dumps(all_results, indent=2))
-    print(f"\nWrote {out_path}")
-
-
-if __name__ == "__main__":
-    main()

@@ -32,12 +32,12 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 from collections import defaultdict
 from fractions import Fraction
 from math import gcd
 from pathlib import Path
+from typing import Iterable
 
 import numpy as np
 
@@ -140,28 +140,19 @@ def evaluate_case(f_path: Path, shots_per_batch, num_batches, seed):
     return out
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--workdir", type=Path,
-                    default=Path("/home/hanyu/lut-synth/results/shor_chained"))
-    ap.add_argument("--output", type=Path,
-                    default=Path("/home/hanyu/lut-synth/results/shor_chained/shor_eh.json"))
-    ap.add_argument("--shots-per-batch", type=int, nargs="+",
-                    default=[1, 2, 3, 5])
-    ap.add_argument("--num-batches", type=int, default=2000)
-    ap.add_argument("--seed", type=int, default=1)
-    args = ap.parse_args()
-
-    summary = []
-    for case_dir in sorted(args.workdir.glob("case_*")):
+def run_eh_on_workdir(workdir: Path, shots_per_batch: Iterable[int],
+                      num_batches: int, seed: int) -> list[dict]:
+    """Scan workdir/case_*/chained_eb*.f.json and run EH analysis on each."""
+    summary: list[dict] = []
+    for case_dir in sorted(workdir.glob("case_*")):
         for f_path in sorted(case_dir.glob("chained_eb*.f.json")):
             data_pre = json.loads(f_path.read_text())
             base, N = data_pre["base"], data_pre["N"]
             w, m = data_pre["w"], data_pre["m_total"]
             eb = data_pre["eb"]
             print(f"({base},{N}) w={w} m={m} eb={eb}: ", end="", flush=True)
-            res = evaluate_case(f_path, args.shots_per_batch,
-                                 args.num_batches, args.seed)
+            res = evaluate_case(f_path, list(shots_per_batch),
+                                num_batches, seed)
             short = ", ".join(
                 f"s={s}:{r['success_rate']:.3f}" for s, r in res.items())
             print(short)
@@ -170,9 +161,4 @@ def main():
                 "exact_period": int(data_pre.get("exact_period") or 0),
                 "eh": {str(k): v for k, v in res.items()},
             })
-    args.output.write_text(json.dumps(summary, indent=2))
-    print(f"wrote {args.output}")
-
-
-if __name__ == "__main__":
-    main()
+    return summary

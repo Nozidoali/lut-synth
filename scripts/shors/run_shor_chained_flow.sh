@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # End-to-end chained windowed Shor's flow:
-#   1. scripts/shor_chained.py: generate per-window LUTs, synth+approx, compose f̃
-#   2. scripts/plot_shor.py: Pareto + per-case panels
-#   3. scripts/plot_shor_period.py: period degradation for chosen case
-#   4. scripts/model_ft_cost.py: FTQC resource model at given p_phys
+#   1. run.py windowed: generate per-window LUTs, synth+approx, compose f̃
+#   2. plot_shor.py: Pareto + per-case panels
+#   3. plot_shor_period.py: period degradation for chosen case
+#   4. analyze.py --ft-cost: FTQC resource model at given p_phys
 #
 # Outputs land under results/shor_chained/.
 
@@ -24,10 +24,10 @@ source /home/hanyu/anaconda3/etc/profile.d/conda.sh
 conda activate quantum
 
 echo "### step 1/4: chained windowed synth + approx + compose ###"
-python "$ROOT/scripts/shors/shor_chained.py" \
+python "$ROOT/scripts/shors/run.py" windowed \
   --cases $CASES --eb $EBS --shots "$SHOTS" \
   --num-random-starts "$STARTS" \
-  --workdir "$WORKDIR"
+  --workdir "$WORKDIR" --output "$JSON"
 
 echo ""
 echo "### step 2/4: Pareto + per-case plots ###"
@@ -42,8 +42,10 @@ python "$ROOT/scripts/shors/plot_shor_period.py" \
 
 echo ""
 echo "### step 4/4: FTQC cost model at p_phys=$P_PHYS ###"
-python "$ROOT/scripts/shors/model_ft_cost.py" \
-  --input "$JSON" --outdir "$WORKDIR/plots" --p-phys "$P_PHYS"
+python "$ROOT/scripts/shors/analyze.py" \
+  --input "$JSON" --ft-cost --p-phys "$P_PHYS" \
+  --ft-plot "$WORKDIR/plots/ft_cost.png" \
+  --output "$WORKDIR/analyzed.json"
 
 echo ""
 echo "=== full flow done ==="

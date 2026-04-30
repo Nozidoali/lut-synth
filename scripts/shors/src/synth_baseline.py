@@ -11,14 +11,14 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_ROOT / "third-party" / "qlut-benchmarks" / "src"))
 
 from modexp import generate_modexp_truth_table  # noqa: E402
@@ -174,51 +174,29 @@ def print_table(row: dict) -> None:
               f"({100*saved/before:.1f}%)")
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--cases", nargs="+",
-        default=["mono:3,35,8", "mono:5,33,8", "chained:5,33,4,12",
-                 "chained:3,35,4,12"],
-        help="each case is 'mono:base,N,exp_bits' or "
-             "'chained:base,N,w,m_total'")
-    ap.add_argument("--starts", nargs="+", type=int,
-        default=[1, 4, 16, 64])
-    ap.add_argument("--eb", nargs="+", type=float,
-        default=[0.1, 0.3, 1.0])
-    ap.add_argument("--workdir", type=Path,
-        default=PROJECT_ROOT / "results" / "synth_baseline")
-    ap.add_argument("--synth", type=Path,
-        default=PROJECT_ROOT / "build" / "synth-tt")
-    ap.add_argument("--approx", type=Path,
-        default=PROJECT_ROOT / "build" / "approx-xag")
-    ap.add_argument("--output", type=Path, default=None)
-    args = ap.parse_args()
-
-    args.workdir.mkdir(parents=True, exist_ok=True)
-
-    all_rows = []
-    for c in args.cases:
+def run_audit(cases: list[str], starts_list: list[int], ebs: list[float],
+              workdir: Path, synth_bin: Path, approx_bin: Path
+              ) -> list[dict[str, Any]]:
+    """cases: each is 'mono:base,N,exp_bits' or 'chained:base,N,w,m_total'."""
+    workdir.mkdir(parents=True, exist_ok=True)
+    rows: list[dict[str, Any]] = []
+    for c in cases:
         kind, spec = c.split(":")
         parts = [int(x) for x in spec.split(",")]
         if kind == "mono":
-            b, N, eb = parts
-            case_dir = args.workdir / f"mono_{b}_{N}_{eb}"
+            b, N, exp_bits = parts
+            case_dir = workdir / f"mono_{b}_{N}_{exp_bits}"
             case_dir.mkdir(parents=True, exist_ok=True)
-            row = run_monolithic(b, N, eb, args.starts, args.eb, case_dir,
-                                 args.synth, args.approx)
-        else:
+            row = run_monolithic(b, N, exp_bits, starts_list, ebs, case_dir,
+                                 synth_bin, approx_bin)
+        elif kind == "chained":
             b, N, w, m = parts
-            case_dir = args.workdir / f"chained_{b}_{N}_w{w}_m{m}"
+            case_dir = workdir / f"chained_{b}_{N}_w{w}_m{m}"
             case_dir.mkdir(parents=True, exist_ok=True)
-            row = run_chained(b, N, w, m, args.starts, args.eb, case_dir,
-                              args.synth, args.approx)
-        all_rows.append(row)
+            row = run_chained(b, N, w, m, starts_list, ebs, case_dir,
+                              synth_bin, approx_bin)
+        else:
+            raise ValueError(f"unknown kind {kind}; expected mono|chained")
+        rows.append(row)
         print_table(row)
-
-    out_path = args.output or (args.workdir / "synth_baseline.json")
-    out_path.write_text(json.dumps(all_rows, indent=2))
-    print(f"\nwrote {out_path}")
-
-
-if __name__ == "__main__":
-    main()
+    return rows
