@@ -32,7 +32,7 @@ RESULTS = PROJECT_ROOT / "results"
 OUT = RESULTS / "final"
 OUT.mkdir(parents=True, exist_ok=True)
 
-sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "shors" / "src"))
 sys.path.insert(0, str(PROJECT_ROOT / "third-party" / "qlut-benchmarks" / "src"))
 
 plt.rcParams.update({
