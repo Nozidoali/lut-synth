@@ -55,7 +55,22 @@ xag_network apply_constant_fanin_opt(xag_network const &xag);
 
 xag_network apply_dont_cares_opt(xag_network const &xag);
 
-xag_network apply_resub_minmc_withdc(xag_network const &xag);
+/*! \brief Parameters for SDC-aware multiplicative-complexity resubstitution.
+ *
+ *  Wraps mockturtle::resubstitution_params with knobs that affect the
+ *  per-window SDC computation in resubstitution_minmc_withDC. Note that
+ *  observability don't-cares are NOT used by this engine; only window_size
+ *  and max_pis tune the effective SDC region.
+ */
+struct ResubMinMcDcParams {
+    uint32_t window_size{150};   /*!< SDC TFI window size (mockturtle default 12) */
+    uint32_t max_pis{8};         /*!< Max window leaves (mockturtle default 8) */
+    uint32_t max_inserts{2};     /*!< Max inserts per resub (mockturtle default 2) */
+    uint32_t max_divisors{150};  /*!< Max divisors per window (mockturtle default 150) */
+};
+
+xag_network apply_resub_minmc_withdc(xag_network const &xag,
+                                      ResubMinMcDcParams const &ps = {});
 
 xag_network apply_functional_reduction_pass(xag_network const &xag);
 

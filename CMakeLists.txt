@@ -30,6 +30,7 @@ add_library(lut-synth STATIC
   src/lut-synth/resynthesis/resub-patterns.cpp
   src/lut-synth/resynthesis/resynthesis-util.cpp
   src/lut-synth/resynthesis/resynthesis-v3.cpp
+  src/lut-synth/resynthesis/dc-and-rewrite.cpp
   src/lut-synth/approximate/resynthesis/resubals.cpp
   src/lut-synth/approximate/resynthesis/narrow-resub.cpp
   src/lut-synth/approximate/resynthesis/lac.cpp
@@ -76,6 +77,9 @@ if(BUILD_TOOLS)
 
   add_executable(approx-xag tools/approx-xag.cpp)
   target_link_libraries(approx-xag PRIVATE lut-synth)
+
+  add_executable(bench-dc-resub tools/bench-dc-resub.cpp)
+  target_link_libraries(bench-dc-resub PRIVATE lut-synth)
 endif()
 
 enable_testing()

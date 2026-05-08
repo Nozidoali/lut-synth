@@ -8,6 +8,8 @@
 #include "lut-synth/resynthesis/resynthesis-stats.hpp"
 #include "lut-synth/approximate/resynthesis/approximate.hpp"
 #include "lut-synth/resynthesis/cost-generic-resub.hpp"
+#include "lut-synth/resynthesis/dc-and-rewrite.hpp"
+#include "lut-synth/resynthesis/resynthesis-util.hpp"
 #include "lut-synth/resynthesis/xag-resynthesizer.hpp"
 
 namespace lut_synth {
@@ -38,6 +40,12 @@ struct ResynthesisV3Params {
     bool use_esop_once{true};                         /*!< Try ESOP once at start */
     bool use_klut_once{false};                        /*!< Try KLUT once at start */
     uint32_t klut_size{5};                            /*!< KLUT size if enabled */
+
+    bool use_minmc_dc_resub{true};                    /*!< Run SDC-aware minmc resub each iter */
+    ResubMinMcDcParams minmc_dc_resub_params{};       /*!< SDC resub knobs */
+
+    bool use_dc_and_rewrite{false};                   /*!< Run ODC-aware AND->XNOR/proj/0 rewrite (Liu TCAD'22) */
+    DcAndRewriteParams dc_and_rewrite_params{};       /*!< ODC AND-rewrite knobs */
 };
 
 /*! \brief Resynthesize XAG using v3 algorithm with multi-pass optimization.

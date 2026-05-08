@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
+#include <lut-synth/resynthesis/dc-and-rewrite.hpp>
 #include <lut-synth/resynthesis/resynthesis.hpp>
 #include <lut-synth/resynthesis/resynthesis-util.hpp>
 #include <lut-synth/synthesis/synthesis.hpp>
@@ -60,6 +61,29 @@ TEST_CASE("resynthesis preserves function", "[resynthesis]") {
         CHECK(result_tt.completed);
         CHECK(result_tt.equivalent);
     }
+}
+
+TEST_CASE("dc and rewrite triggers on satisfiability dont care", "[resynthesis]") {
+    mockturtle::xag_network ntk;
+    auto a = ntk.create_pi();
+    auto b = ntk.create_pi();
+    auto c = ntk.create_and(a, b);
+    auto t = ntk.create_and(!c, b);
+    ntk.create_po(t);
+
+    REQUIRE(count_ands(ntk) == 2);
+
+    DcAndRewriteStats stats;
+    auto out = apply_dc_and_rewrite(ntk, {}, &stats);
+    out = mockturtle::cleanup_dangling(out);
+
+    uint32_t total_subs = stats.num_const + stats.num_proj_a + stats.num_proj_b + stats.num_xnor;
+    CHECK(total_subs >= 1);
+    CHECK(count_ands(out) < 2);
+
+    auto eq = check_equivalence(ntk, out);
+    CHECK(eq.completed);
+    CHECK(eq.equivalent);
 }
 
 TEST_CASE("resynthesis with report", "[resynthesis]") {

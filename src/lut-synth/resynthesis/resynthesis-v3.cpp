@@ -40,6 +40,14 @@ xag_network optimize_round_v3(xag_network xag,
             }
         }
 
+        if (params.use_minmc_dc_resub) {
+            xag = apply_resub_minmc_withdc(xag, params.minmc_dc_resub_params);
+        }
+
+        if (params.use_dc_and_rewrite) {
+            xag = apply_dc_and_rewrite(xag, params.dc_and_rewrite_params);
+        }
+
         uint32_t cur_and = count_ands(xag);
         if (cur_and < best_and && check_equiv(original, xag)) {
             best = xag;

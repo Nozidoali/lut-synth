@@ -185,12 +185,17 @@ xag_network apply_dont_cares_opt(xag_network const &xag) {
     return mockturtle::cleanup_dangling(mockturtle::xag_dont_cares_optimization(xag));
 }
 
-xag_network apply_resub_minmc_withdc(xag_network const &xag) {
+xag_network apply_resub_minmc_withdc(xag_network const &xag,
+                                      ResubMinMcDcParams const &user_ps) {
     xag_network copy = xag;
     mockturtle::fanout_view<xag_network> fanout_xag{copy};
     mockturtle::depth_view<mockturtle::fanout_view<xag_network>> depth_xag{fanout_xag};
     mockturtle::resubstitution_params ps;
     ps.use_dont_cares = true;
+    ps.window_size = user_ps.window_size;
+    ps.max_pis = user_ps.max_pis;
+    ps.max_inserts = user_ps.max_inserts;
+    ps.max_divisors = user_ps.max_divisors;
     mockturtle::resubstitution_minmc_withDC(depth_xag, ps);
     return mockturtle::cleanup_dangling(copy);
 }
