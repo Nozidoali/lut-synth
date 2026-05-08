@@ -122,11 +122,34 @@ commit 8.
 
 | Path                                                           | Reason                          |
 |----------------------------------------------------------------|---------------------------------|
-| `src/lut-synth/h4-config.hpp`                                  | unused; H4-specific constants   |
+| `src/lut-synth/h4-config.hpp`                                  | H4-specific constants; only used by tools' `--h4` mode (also removed) |
+| `tools/approx-tt.cpp` `--h4` / `--rank` / `--precision` flags  | H4 register-layout shortcut moves to caller scripts |
+| `tools/approx-xag.cpp` `--h4` / `--rank` / `--precision` flags | same                            |
 | `paper/qce2026` (submodule + `.gitmodules` entry)              | already pushed to overleaf      |
 | `gurobi.log` (root)                                            | runtime log, should not be tracked |
 | `A_Dont-Care-Based_Approach_to_Reducing_the_Multiplicative_Complexity_in_Logic_Networks.pdf` (root) | unrelated PDF |
 | Root-level `__pycache__/` / stray Python caches                | not source                      |
+
+### `--h4` flag replacement
+
+After deletion, callers that previously did:
+
+```
+build/approx-tt --h4 --rank R --precision P ...
+```
+
+must now pass the equivalent generic arguments themselves:
+
+```
+build/approx-tt \
+  --registers 1,1,$BW,$BW,P \
+  --lock 0,1,...,$((2 + 2*BW - 1)) \
+  ...    # where BW = ceil(log2(R))
+```
+
+This computation lives in the Python wrapper scripts in
+approx_qlut_simulation/chemistry/ and is rewritten as part of phase 1
+commit 8.
 
 ## Migration sequence — Option A
 
@@ -157,6 +180,7 @@ Operate in lut-synth root.
 
 11. **Bump submodule pointer.** `git submodule update --remote third-party/approx_qlut_simulation` (or `git -C third-party/approx_qlut_simulation checkout NEW_SHA`).
 12. **Delete moved-out paths.** `git rm -r scripts data results figures docs/h4-qrom-structure.md src/lut-synth/h4-config.hpp gurobi.log A_Dont-Care-Based_*.pdf`. Remove any root-level `__pycache__/`.
+12a. **Strip `--h4` from CLI tools.** Edit `tools/approx-tt.cpp` and `tools/approx-xag.cpp` to remove the `--h4`, `--rank`, `--precision` argument parsing, the `Args.h4/rank/precision` struct fields, the `#include "lut-synth/h4-config.hpp"` line, the `using lut_synth::compute_h4_locked_bits` line, the H4 mutual-exclusion validation, and the H4-mode register/locked-output construction. Update the usage string. The generic `--registers` and `--lock` paths stay intact.
 13. **Drop `paper/qce2026` submodule.** Edit `.gitmodules` to remove the entry, `git rm paper/qce2026`, remove `paper/` if empty, clean `.git/modules/paper/qce2026`.
 14. **Rewrite `setup.sh`.** Strip out Python env / conda / pip install branches; keep submodule init, cmake configure/build, optional ctest. Flags retained: `--cpp-only` becomes default behavior (so the flag itself can be removed), `--no-test`, `--jobs N`. `--python-only` and `--env NAME` are removed.
 15. **Rewrite `README.md`.** Drop chemistry-pipeline references. Add a short "Experiments" section that points readers to `third-party/approx_qlut_simulation/` and explains the `LUT_SYNTH_ROOT` convention.
