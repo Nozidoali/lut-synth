@@ -93,11 +93,16 @@ $LUT_SYNTH_ROOT/build/approx-tt ...
 $LUT_SYNTH_ROOT/build/synth-tt ...
 ```
 
-Default `../..` resolves correctly when approx_qlut_simulation is
-checked out at `lut-synth/third-party/approx_qlut_simulation/`. All
-hardcoded `../build/...`, `../../build/...`, or absolute path patterns
-in the imported scripts are rewritten to use `LUT_SYNTH_ROOT` in
-phase 1 commit 8.
+The default `../..` is interpreted relative to **the approx_qlut_simulation
+repo root** (i.e. the convention is: invoke scripts from
+`lut-synth/third-party/approx_qlut_simulation/`, e.g.
+`python chemistry/run_sweep.py ...`, not from inside the
+subdirectory). With that convention `../..` from approx_qlut_simulation
+root resolves to `lut-synth/`. Users can override `LUT_SYNTH_ROOT` to an
+absolute path when running from anywhere else. All hardcoded
+`../build/...`, `../../build/...`, or absolute path patterns in the
+imported scripts are rewritten to use `LUT_SYNTH_ROOT` in phase 1
+commit 8.
 
 ## Items moved out of lut-synth
 
