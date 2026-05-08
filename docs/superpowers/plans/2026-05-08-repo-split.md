@@ -4,7 +4,7 @@
 
 **Goal:** Move H4 / Shor's / random-TT experiment code, artifacts, and H4-specific docs out of the lut-synth repo into the existing `third-party/approx_qlut_simulation/` submodule. lut-synth shrinks to a focused TT→XAG library + CLI tools (exact + approximate). Strip the H4-specific `--h4` mode from `tools/approx-tt.cpp` and `tools/approx-xag.cpp` and delete `src/lut-synth/h4-config.hpp`.
 
-**Architecture:** Two-phase Option A. Phase 1: 8 semantic commits land in the `WanHsuanLin/approx_qlut_simulation` submodule repo on a feature branch, then merge to its `main`. Phase 2: a single lut-synth commit bumps the submodule pointer, deletes moved-out paths, drops the `paper/qce2026` submodule, strips `--h4` from the CLI tools, and rewrites `setup.sh` + `README.md`. Cross-repo invocation is done through `LUT_SYNTH_ROOT` (default `../..` relative to approx_qlut_simulation root).
+**Architecture:** Two-phase Option A. Phase 1: 8 semantic commits land in the `WanHsuanLin/approx_qlut_simulation` submodule repo on a feature branch, then merge to its `main`. Phase 2: a single lut-synth commit bumps the submodule pointer, deletes moved-out paths, strips `--h4` from the CLI tools, and rewrites `setup.sh` + `README.md`. Cross-repo invocation is done through `LUT_SYNTH_ROOT` (default `../..` relative to approx_qlut_simulation root). The `paper/qce2026` submodule is intentionally left untouched (the user has in-flight overleaf work there).
 
 **Tech Stack:** Bash, git/git-submodule, C++17 (CMake + Catch2), Python (read-only — no Python tests in this plan).
 
@@ -27,14 +27,23 @@ Before starting:
 **Files:**
 - Read: `/home/hanyu/lut-synth/.git/config`, `/home/hanyu/lut-synth/third-party/approx_qlut_simulation/.git`
 
-- [ ] **Step 1: Verify lut-synth working tree is clean except for the expected design/plan docs.**
+- [ ] **Step 1: Verify lut-synth working tree is in the expected pre-refactor state.**
 
 ```bash
 cd /home/hanyu/lut-synth
 git status --short
 ```
 
-Expected: only `docs/superpowers/specs/...` and `docs/superpowers/plans/...` changes (or already committed). If anything else is dirty, stash or commit before proceeding.
+Expected (exactly these lines, in any order):
+
+```
+ M paper/qce2026
+?? A_Dont-Care-Based_Approach_to_Reducing_the_Multiplicative_Complexity_in_Logic_Networks.pdf
+```
+
+The `M paper/qce2026` is in-flight overleaf work; the refactor will NOT touch that submodule. The PDF is to-be-deleted in Task 11. Both are accepted for this gate.
+
+If `git status --short` shows ANY OTHER modified or untracked entry (especially under `src/`, `tools/`, `scripts/`, or `docs/superpowers/`), STOP — do not proceed.
 
 - [ ] **Step 2: Capture baseline build is green.**
 
@@ -1053,41 +1062,21 @@ grep -n "h4\|H4\|rank\|precision\|h4-config" /home/hanyu/lut-synth/tools/approx-
 
 Expected: no matches. (`approximate` and other unrelated tokens are fine — the grep above is a sanity check, not exact.)
 
-- [ ] **Step 4: Delete `h4-config.hpp` and the `paper/qce2026` submodule.**
+- [ ] **Step 4: Delete `h4-config.hpp`. Leave `paper/qce2026` submodule untouched.**
 
 ```bash
 cd /home/hanyu/lut-synth
 git rm src/lut-synth/h4-config.hpp
-
-# Drop paper/qce2026 submodule
-git submodule deinit -f paper/qce2026 || true
-git rm -f paper/qce2026
-rm -rf .git/modules/paper
-# .gitmodules: remove the [submodule "paper/qce2026"] block
-python3 - <<'PY'
-import re, pathlib
-p = pathlib.Path('.gitmodules')
-text = p.read_text()
-text = re.sub(
-    r'\[submodule "paper/qce2026"\][\s\S]*?(?=^\[|\Z)',
-    '',
-    text, flags=re.M
-)
-text = text.rstrip() + '\n'
-p.write_text(text)
-PY
-# Drop empty paper/ directory
-rmdir paper 2>/dev/null || true
 ```
 
 Verify:
 
 ```bash
-grep -A1 paper/qce2026 .gitmodules || echo "no paper entry"
-ls paper/ 2>/dev/null || echo "paper dir gone"
+ls src/lut-synth/h4-config.hpp 2>/dev/null && echo "STILL THERE" || echo "gone"
+git submodule status paper/qce2026
 ```
 
-Expected: `no paper entry` and `paper dir gone`.
+Expected: `gone`; `paper/qce2026` submodule still listed (its pointer drift remains as `M paper/qce2026` in `git status` and is NOT staged in this commit — see Step 11).
 
 - [ ] **Step 5: Delete moved-out paths.**
 
@@ -1279,11 +1268,21 @@ Thumbs.db
 # Tool artifacts
 gurobi.log
 .claude/scheduled_tasks.lock
+
+# LaTeX build artifacts
+paper/*/*.aux
+paper/*/*.log
+paper/*/*.bbl
+paper/*/*.blg
+paper/*/*.out
+paper/*/*.fls
+paper/*/*.fdb_latexmk
+paper/*/*.synctex.gz
 EOF
 ```
 
-(Removed: `results/` exclusion since the dir no longer exists; LaTeX
-build artifacts under `paper/*/` since the submodule is gone.)
+(Removed: `results/` exclusion since the dir no longer exists. LaTeX
+artifacts kept since `paper/qce2026` submodule stays.)
 
 - [ ] **Step 9: Build + ctest gate. Must be green before commit.**
 
@@ -1312,12 +1311,12 @@ Expected: usage strings print without segfault. None of them mention `--h4` / `-
 
 ```bash
 cd /home/hanyu/lut-synth
-git add -A tools/ src/ setup.sh README.md .gitignore .gitmodules third-party/approx_qlut_simulation
+git add -A tools/ src/ setup.sh README.md .gitignore third-party/approx_qlut_simulation
 git status
 git diff --staged --stat | tail
 ```
 
-Expected: stage summary lists the deleted directories, modified C++ files, modified setup/README/gitignore/gitmodules, the submodule pointer bump, and the missing `paper/qce2026` entry. No untracked changes left behind that should be in the commit.
+Expected: stage summary lists the deleted directories, modified C++ files, modified setup/README/gitignore, and the submodule pointer bump. The `paper/qce2026` submodule pointer drift must NOT be staged — it stays as ` M paper/qce2026` (unstaged) in the working tree both before and after the commit. Verify with `git diff --staged paper/qce2026` (should print nothing).
 
 - [ ] **Step 12: Single commit.**
 
@@ -1333,7 +1332,6 @@ Split experiments into approx_qlut_simulation submodule
   tools/approx-tt and tools/approx-xag; delete src/lut-synth/h4-config.hpp.
 - Remove now-duplicated paths: scripts/, data/, figures/,
   docs/h4-qrom-structure.md, gurobi.log, root-level PDF.
-- Drop paper/qce2026 submodule (already pushed to overleaf).
 - Rewrite setup.sh as C++-only and README.md to point at the
   experiments submodule for Python / conda / chemistry usage.
 EOF
@@ -1348,12 +1346,13 @@ Expected: one new lut-synth commit containing all the above.
 cd /home/hanyu/lut-synth
 git log --stat -1
 git submodule status
-ls scripts data figures paper 2>/dev/null && echo "STILL THERE" || echo "gone"
+ls scripts data figures 2>/dev/null && echo "STILL THERE" || echo "gone"
 ls src/lut-synth/h4-config.hpp 2>/dev/null && echo "STILL THERE" || echo "gone"
 grep -n h4-config tools/approx-tt.cpp tools/approx-xag.cpp 2>/dev/null || echo "no h4 includes"
+git status --short
 ```
 
-Expected: deleted dirs/file are `gone`; submodule status shows `mockturtle`, `qlut-benchmarks`, `approx_qlut_simulation` (no `paper/qce2026`); `no h4 includes`.
+Expected: deleted dirs/file are `gone`; submodule status shows `mockturtle`, `qlut-benchmarks`, `approx_qlut_simulation`, AND `paper/qce2026` (untouched); `no h4 includes`. `git status --short` should show ` M paper/qce2026` (the in-flight pointer drift, unstaged) as the only entry.
 
 ---
 
