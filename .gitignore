@@ -18,9 +18,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Results
-results/
-
 # Tool artifacts
 gurobi.log
 .claude/scheduled_tasks.lock

@@ -1,5 +1,0 @@
-# Generated THC sweep artifacts (Verilog XAGs, TT files, care lists);
-# keep summary.json
-*.v
-*.tt
-*care*.txt

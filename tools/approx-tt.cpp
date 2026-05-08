@@ -1,6 +1,5 @@
 #include "lut-synth/approximate/tt-approximation/tt-approximation.hpp"
 #include "lut-synth/error.hpp"
-#include "lut-synth/h4-config.hpp"
 #include "lut-synth/truth-table.hpp"
 
 #include <cassert>
@@ -19,9 +18,6 @@ struct Args {
     double time_limit = 60.0;
     std::vector<uint32_t> registers;
     std::vector<uint32_t> lock_indices;
-    bool h4 = false;
-    uint32_t rank = 0;
-    uint32_t precision = 0;
     bool verbose = false;
 };
 
@@ -53,12 +49,6 @@ Args parse_args(int argc, char* argv[]) {
                 args.lock_indices.push_back(
                     static_cast<uint32_t>(std::stoul(token)));
             }
-        } else if (arg == "--h4") {
-            args.h4 = true;
-        } else if (arg == "--rank" && i + 1 < argc) {
-            args.rank = static_cast<uint32_t>(std::stoul(argv[++i]));
-        } else if (arg == "--precision" && i + 1 < argc) {
-            args.precision = static_cast<uint32_t>(std::stoul(argv[++i]));
         } else if (arg == "--verbose" || arg == "-v") {
             args.verbose = true;
         }
@@ -66,14 +56,10 @@ Args parse_args(int argc, char* argv[]) {
     return args;
 }
 
-using lut_synth::ceil_log2;
-using lut_synth::compute_h4_locked_bits;
-
 void print_usage() {
     std::cerr << "Usage: approx-tt --input <file> --output <file> "
               << "[--error-bound <val>] [--time-limit <sec>] "
-              << "[--registers 1,1,6,6,6] [--lock 0,1] "
-              << "[--h4 --rank <R> --precision <B>] [--verbose]\n";
+              << "[--registers 1,1,6,6,6] [--lock 0,1] [--verbose]\n";
 }
 
 } // namespace
@@ -85,15 +71,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (args.h4 && (!args.registers.empty() || !args.lock_indices.empty())) {
-        std::cerr << "Error: --h4 is mutually exclusive with --registers and --lock\n";
-        return 1;
-    }
-    if (args.h4 && (args.rank < 2 || args.precision < 1)) {
-        std::cerr << "Error: --h4 requires --rank >= 2 and --precision >= 1\n";
-        return 1;
-    }
-
     lut_synth::TruthTable tt;
     tt.read(args.input);
 
@@ -101,33 +78,13 @@ int main(int argc, char* argv[]) {
     params.error_bound = args.error_bound;
     params.time_limit = args.time_limit;
     params.verbose = args.verbose;
-
-    if (args.h4) {
-        uint32_t bw_mu = ceil_log2(args.rank);
-        params.register_bitsizes = {1, 1, bw_mu, bw_mu, args.precision};
-
-        uint32_t locked_bits = compute_h4_locked_bits(args.rank);
+    params.register_bitsizes = args.registers;
+    if (!args.lock_indices.empty()) {
         uint32_t num_outputs = static_cast<uint32_t>(tt.get_tts().size());
-        uint32_t expected_outputs = locked_bits + args.precision;
-        if (num_outputs != expected_outputs) {
-            std::cerr << "Error: H4 mode expects " << expected_outputs
-                      << " outputs (got " << num_outputs << ") for rank="
-                      << args.rank << " precision=" << args.precision << "\n";
-            return 1;
-        }
         params.locked_outputs.assign(num_outputs, false);
-        for (uint32_t i = 0; i < locked_bits; ++i) {
-            params.locked_outputs[i] = true;
-        }
-    } else {
-        params.register_bitsizes = args.registers;
-        if (!args.lock_indices.empty()) {
-            uint32_t num_outputs = static_cast<uint32_t>(tt.get_tts().size());
-            params.locked_outputs.assign(num_outputs, false);
-            for (uint32_t idx : args.lock_indices) {
-                if (idx < num_outputs) {
-                    params.locked_outputs[idx] = true;
-                }
+        for (uint32_t idx : args.lock_indices) {
+            if (idx < num_outputs) {
+                params.locked_outputs[idx] = true;
             }
         }
     }

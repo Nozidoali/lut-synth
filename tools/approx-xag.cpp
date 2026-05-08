@@ -1,6 +1,5 @@
 #include "lut-synth/approximate/resynthesis/narrow-resub.hpp"
 #include "lut-synth/approximate/resynthesis/resubals.hpp"
-#include "lut-synth/h4-config.hpp"
 #include "lut-synth/resynthesis/resynthesis-util.hpp"
 #include "lut-synth/synthesis/ss-synthesizer.hpp"
 #include "lut-synth/truth-table.hpp"
@@ -36,15 +35,9 @@ struct Args {
     bool verbose = false;
     std::vector<uint32_t> lock_indices;
     std::string care_patterns_file;
-    bool h4 = false;
-    uint32_t rank = 0;
-    uint32_t precision = 0;
     uint32_t max_pattern_error = 0;
     std::string estimator = "integer";
 };
-
-using lut_synth::ceil_log2;
-using lut_synth::compute_h4_locked_bits;
 
 Args parse_args(int argc, char* argv[]) {
     Args args;
@@ -81,12 +74,6 @@ Args parse_args(int argc, char* argv[]) {
             }
         } else if (arg == "--care-patterns" && i + 1 < argc) {
             args.care_patterns_file = argv[++i];
-        } else if (arg == "--h4") {
-            args.h4 = true;
-        } else if (arg == "--rank" && i + 1 < argc) {
-            args.rank = static_cast<uint32_t>(std::stoul(argv[++i]));
-        } else if (arg == "--precision" && i + 1 < argc) {
-            args.precision = static_cast<uint32_t>(std::stoul(argv[++i]));
         } else if (arg == "--max-pattern-error" && i + 1 < argc) {
             args.max_pattern_error = static_cast<uint32_t>(std::stoul(argv[++i]));
         } else if (arg == "--estimator" && i + 1 < argc) {
@@ -103,8 +90,7 @@ void print_usage() {
               << "[--error-bound F] [--num-patterns N] "
               << "[--num-random-starts N] [--seed S] "
               << "[--disable-dont-care] [--verbose] "
-              << "[--lock idx1,idx2,...] "
-              << "[--h4 --rank R --precision P]\n";
+              << "[--lock idx1,idx2,...]\n";
 }
 
 } // namespace
@@ -143,17 +129,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<bool> locked_outputs;
-    if (args.h4) {
-        if (args.rank < 2 || args.precision < 1) {
-            std::cerr << "Error: --h4 requires --rank >= 2 and --precision >= 1\n";
-            return 1;
-        }
-        uint32_t locked_bits = compute_h4_locked_bits(args.rank);
-        locked_outputs.assign(num_outputs, false);
-        for (uint32_t i = 0; i < locked_bits && i < num_outputs; ++i) {
-            locked_outputs[i] = true;
-        }
-    } else if (!args.lock_indices.empty()) {
+    if (!args.lock_indices.empty()) {
         locked_outputs.assign(num_outputs, false);
         for (uint32_t idx : args.lock_indices) {
             if (idx < num_outputs) locked_outputs[idx] = true;
