@@ -24,5 +24,6 @@ gurobi.log
 # Local agent config / scratch
 .claude/
 
-# Local-only paper working copy (not part of the public repo)
+# Local-only scratch, not part of the public repo
 paper/
+design/
