@@ -1,4 +1,10 @@
+<p align="center">
+  <img src="docs/assets/logo.svg" width="128" height="128" alt="lut-synth logo">
+</p>
+
 # lut-synth
+
+Part of the [High-Level Quantum Circuit Synthesis Toolkit](https://github.com/Nozidoali/q-hls).
 
 [![build](https://github.com/Nozidoali/lut-synth/actions/workflows/ci.yml/badge.svg)](https://github.com/Nozidoali/lut-synth/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
