@@ -1,12 +1,6 @@
 [submodule "lib/mockturtle"]
 	path = third-party/mockturtle
 	url = https://github.com/lsils/mockturtle.git
-[submodule "approx_qlut_simulation"]
-	path = third-party/approx_qlut_simulation
-	url = git@github.com:WanHsuanLin/approx_qlut_simulation.git
 [submodule "qlut-benchmarks"]
 	path = third-party/qlut-benchmarks
-	url = git@github.com:Nozidoali/qlut-benchmarks.git
-[submodule "paper/qce2026"]
-	path = paper/qce2026
-	url = OVERLEAF_PROJECT_URL_REMOVED
+	url = https://github.com/Nozidoali/qlut-benchmarks.git

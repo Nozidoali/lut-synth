@@ -20,14 +20,9 @@ Thumbs.db
 
 # Tool artifacts
 gurobi.log
-.claude/scheduled_tasks.lock
 
-# LaTeX build artifacts
-paper/*/*.aux
-paper/*/*.log
-paper/*/*.bbl
-paper/*/*.blg
-paper/*/*.out
-paper/*/*.fls
-paper/*/*.fdb_latexmk
-paper/*/*.synctex.gz
+# Local agent config / scratch
+.claude/
+
+# Local-only paper working copy (not part of the public repo)
+paper/

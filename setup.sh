@@ -12,7 +12,7 @@
 # in approx-tt).
 #
 # For the experiments harness (Python, conda, chemistry pipeline,
-# Shor's flow), see third-party/approx_qlut_simulation/setup.sh.
+# Shor's flow), see https://github.com/WanHsuanLin/approx_qlut_simulation.
 
 set -euo pipefail
 

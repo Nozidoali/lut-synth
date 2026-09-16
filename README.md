@@ -1,12 +1,14 @@
 # lut-synth
 
+[![build](https://github.com/Nozidoali/lut-synth/actions/workflows/ci.yml/badge.svg)](https://github.com/Nozidoali/lut-synth/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Truth-table to XAG logic synthesis library: exact and approximate.
-Extracted from HLQCS.
 
 ## Getting Started
 
 ```bash
-git clone --recursive git@github.com:Nozidoali/lut-synth.git
+git clone --recursive https://github.com/Nozidoali/lut-synth.git
 cd lut-synth
 ./setup.sh
 ```
@@ -54,9 +56,16 @@ build/synth-tt   --input my.approx.tt --num-random-starts 1
 
 End-to-end experiments -- chemistry pipeline (PySCF -> THC -> qualtran
 `PrepareTHC` -> CCSD(T)), Shor's algorithm flow, random-TT benchmark --
-live in the `third-party/approx_qlut_simulation/` submodule, which
-calls back into this repo's CLI tools via the `LUT_SYNTH_ROOT`
-environment variable. See its README for usage.
+live in a separate repository,
+[approx_qlut_simulation](https://github.com/WanHsuanLin/approx_qlut_simulation).
+It calls back into this repo's CLI tools via the `LUT_SYNTH_ROOT`
+environment variable:
+
+```bash
+git clone https://github.com/WanHsuanLin/approx_qlut_simulation.git
+cd approx_qlut_simulation
+LUT_SYNTH_ROOT=/path/to/lut-synth ./setup.sh
+```
 
 ## Layout
 
@@ -66,9 +75,13 @@ lut-synth/
 ├── tools/                # CLI: approx-tt, approx-xag, synth-tt
 ├── test/                 # Catch2 unit tests
 ├── third-party/
-│   ├── mockturtle/                       (submodule)
-│   ├── qlut-benchmarks/                  (submodule)
-│   └── approx_qlut_simulation/           (submodule, experiments)
+│   ├── mockturtle/        (submodule, build dependency)
+│   └── qlut-benchmarks/   (submodule, benchmark corpus)
 └── docs/
     └── approximation-methods.md
 ```
+
+## License
+
+MIT -- see [LICENSE](LICENSE). This project builds against
+[mockturtle](https://github.com/lsils/mockturtle), which is also MIT-licensed.
