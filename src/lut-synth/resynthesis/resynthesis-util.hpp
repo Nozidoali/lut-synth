@@ -45,7 +45,7 @@ xag_network apply_algebraic_rewriting(xag_network const &xag);
 ResynthesisStepInfo make_step(uint32_t num, std::string const &type,
                                        uint32_t before, uint32_t after, double ms);
 
-xag_network apply_cut_rewriting_minmc_v3(xag_network const &xag,
+xag_network apply_cut_rewriting_minmc(xag_network const &xag,
                                           uint32_t cut_size,
                                           bool use_dont_cares,
                                           uint32_t cut_limit,

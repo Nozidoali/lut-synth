@@ -5,8 +5,8 @@
 
 namespace lut_synth {
 
-/*! \brief V3 resynthesis: multi-candidate downhill optimization. */
-class V3Resynthesizer : public XagResynthesizer {
+/*! \brief AnySyn resynthesis: multi-candidate downhill optimization. */
+class AnySynResynthesizer : public XagResynthesizer {
   public:
     std::string name() const override;
     ResynthesisResult
@@ -14,7 +14,7 @@ class V3Resynthesizer : public XagResynthesizer {
     void set_timeout(double timeout_s) override;
 
   private:
-    ResynthesisV3Params params_{};
+    AnySynParams params_{};
 };
 
 } // namespace lut_synth

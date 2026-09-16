@@ -35,8 +35,6 @@ uint32_t check_tts(std::vector<kitty::dynamic_truth_table> const &tts,
  *    automatic k selection to minimize AND gates.
  *  - **davio**: Positive Davio decomposition. Fast but produces more ANDs.
  *    Good for functions with XOR structure.
- *  - **ac**: Affine classification. Groups inputs by affine equivalence.
- *    Quality depends on ac_max_lut parameter.
  *  - **dsd**: Disjoint support decomposition. Exploits structural properties.
  *    Can produce compact results for functions with disjoint support.
  *  - **exact**: SAT-based exact synthesis. Finds minimum AND count but
@@ -50,8 +48,7 @@ uint32_t check_tts(std::vector<kitty::dynamic_truth_table> const &tts,
  *  5. Select k with minimum AND count
  *
  *  \param tts Vector of output truth tables (all must have same num_vars)
- *  \param method Synthesis method: "ss", "davio", "ac", "dsd", "exact"
- *  \param ac_max_lut Maximum LUT size for AC method (default: 4)
+ *  \param method Synthesis method: "ss", "davio", "dsd", "exact"
  *  \param ss_k Shannon parameter for ss method (-1 = auto-select best k)
  *  \return Synthesized XAG network minimizing AND (multiplicative complexity)
  *
@@ -64,7 +61,7 @@ uint32_t check_tts(std::vector<kitty::dynamic_truth_table> const &tts,
  */
 mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_table> const &tts,
                                                std::string_view method = "ss",
-                                               uint32_t ac_max_lut = 4, int ss_k = -1);
+                                               int ss_k = -1);
 
 /*! \brief Synthesize XAG network from TruthTable with don't-care support.
  *
@@ -79,7 +76,6 @@ mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_
  *
  *  \param tt Input truth table (may contain don't-cares)
  *  \param method Synthesis method (don't-cares only supported for "ss")
- *  \param ac_max_lut Maximum LUT size for AC method
  *  \param ss_k Shannon parameter for ss method (-1 = auto)
  *  \param disable_dont_care If true, ignore don't-cares and treat as zeros
  *  \return Synthesized XAG network
@@ -88,12 +84,12 @@ mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_
  *  ```cpp
  *  TruthTable tt(on_set, off_set);  // Has don't-cares
  *  auto xag = lut_synth::synthesize_xag_network(tt, "ss");  // Exploits DCs
- *  auto xag_no_dc = lut_synth::synthesize_xag_network(tt, "ss", 4, -1, true);
+ *  auto xag_no_dc = lut_synth::synthesize_xag_network(tt, "ss", -1, true);
  *  ```
  */
 mockturtle::xag_network synthesize_xag_network(lut_synth::TruthTable const &tt,
                                                std::string_view method = "ss",
-                                               uint32_t ac_max_lut = 4, int ss_k = -1,
+                                               int ss_k = -1,
                                                bool disable_dont_care = false);
 
 /*! \brief Synthesize XAG using Shannon with don't-care sets.

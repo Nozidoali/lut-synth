@@ -14,7 +14,6 @@ namespace lut_synth {
 
 /*! \brief Options for parameterized synthesis method creation. */
 struct SynthesisOptions {
-    uint32_t ac_max_lut = 4;          /*!< Max LUT size for AC method */
     int ss_k = -1;                     /*!< Shannon parameter for SS (-1 = auto) */
     uint32_t num_random_starts = 1;    /*!< Random starts for SS */
     uint64_t seed = 0;                 /*!< Random seed for SS */
@@ -24,9 +23,9 @@ struct SynthesisOptions {
 /*! \brief Abstract base class for XAG synthesis methods.
  *
  *  Provides a polymorphic interface for truth-table-to-XAG synthesis.
- *  Concrete subclasses wrap individual synthesis algorithms (davio, ac,
- *  dsd, ss, exact, rmdds) and self-register via a static registry so
- *  that methods can be selected by name at runtime.
+ *  Concrete subclasses wrap individual synthesis algorithms (ss, davio,
+ *  dsd, exact) and self-register via a static registry so that methods
+ *  can be selected by name at runtime.
  *
  *  Algorithm:
  *  1. Each subclass registers itself with a file-local static object

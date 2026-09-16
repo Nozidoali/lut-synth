@@ -36,8 +36,8 @@ log() { printf '\033[1;34m[setup]\033[0m %s\n' "$*"; }
 log "Initializing git submodules"
 git submodule update --init --recursive
 
-log "Configuring cmake (BUILD_TESTS=ON, BUILD_TOOLS=ON)"
-cmake -B build -DBUILD_TESTS=ON -DBUILD_TOOLS=ON
+log "Configuring cmake (Release, tools and tests on by default)"
+cmake -B build -DCMAKE_BUILD_TYPE=Release
 
 log "Building (jobs=$JOBS)"
 cmake --build build -j"$JOBS"

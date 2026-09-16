@@ -15,21 +15,19 @@ add_library(lut-synth STATIC
   src/lut-synth/synthesis/ss-synthesizer.cpp
   src/lut-synth/synthesis/exact-synthesis.cpp
   src/lut-synth/synthesis/anf-xag-builder.cpp
-  src/lut-synth/synthesis/rmdds.cpp
   src/lut-synth/synthesis/select-swap.cpp
   src/lut-synth/synthesis/select-swap-dont-care.cpp
-  src/lut-synth/synthesis/affine-classification.cpp
   src/lut-synth/synthesis/davio.cpp
   src/lut-synth/synthesis/disjoint-support-decomposition.cpp
   src/lut-synth/synthesis/resubstitution.cpp
   src/lut-synth/synthesis/util.cpp
   src/lut-synth/synthesis/variable-selection.cpp
   src/lut-synth/resynthesis/xag-resynthesizer.cpp
-  src/lut-synth/resynthesis/v3-resynthesizer.cpp
+  src/lut-synth/resynthesis/anysyn-resynthesizer.cpp
   src/lut-synth/resynthesis/cost-generic-resub.cpp
   src/lut-synth/resynthesis/resub-patterns.cpp
   src/lut-synth/resynthesis/resynthesis-util.cpp
-  src/lut-synth/resynthesis/resynthesis-v3.cpp
+  src/lut-synth/resynthesis/resynthesis-anysyn.cpp
   src/lut-synth/resynthesis/dc-and-rewrite.cpp
   src/lut-synth/approximate/resynthesis/resubals.cpp
   src/lut-synth/approximate/resynthesis/narrow-resub.cpp
@@ -43,11 +41,6 @@ add_library(lut-synth STATIC
   src/lut-synth/approximate/resynthesis/miter-builder.cpp
   src/lut-synth/approximate/resynthesis/miter-estimator.cpp
   src/lut-synth/approximate/resynthesis/tt-ops.cpp
-  src/lut-synth/approximate/tt-approximation/anf-data.cpp
-  src/lut-synth/approximate/tt-approximation/ilp-common.cpp
-  src/lut-synth/approximate/tt-approximation/tt-approximation.cpp
-  src/lut-synth/approximate/tt-approximation/bounds.cpp
-  src/lut-synth/approximate/tt-approximation/exact.cpp
 )
 
 target_include_directories(lut-synth PUBLIC
@@ -59,27 +52,28 @@ target_link_libraries(lut-synth PUBLIC
   kitty
 )
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(GUROBI QUIET)
-if(GUROBI_FOUND)
-  target_compile_definitions(lut-synth PUBLIC HAS_GUROBI ENABLE_GUROBI)
-  target_link_libraries(lut-synth PUBLIC ${GUROBI_LIBRARIES})
-  target_include_directories(lut-synth PUBLIC ${GUROBI_INCLUDE_DIRS})
-endif()
-
-option(BUILD_TOOLS "Build command-line tools" OFF)
+option(BUILD_TOOLS "Build command-line tools" ON)
 if(BUILD_TOOLS)
-  add_executable(approx-tt tools/approx-tt.cpp)
-  target_link_libraries(approx-tt PRIVATE lut-synth)
+  add_library(lut-synth-command-line STATIC
+    tools/command-line.cpp
+    tools/synthesis-driver.cpp
+  )
+  target_include_directories(lut-synth-command-line PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools
+  )
+  target_link_libraries(lut-synth-command-line PUBLIC lut-synth)
 
-  add_executable(synth-tt tools/synth-tt.cpp)
-  target_link_libraries(synth-tt PRIVATE lut-synth)
+  # Truth table in, Verilog out: one binary per synthesis method.
+  foreach(method ss davio dsd exact)
+    add_executable(lut-synth-${method} tools/lut-synth-${method}.cpp)
+    target_link_libraries(lut-synth-${method} PRIVATE lut-synth-command-line)
+  endforeach()
 
-  add_executable(approx-xag tools/approx-xag.cpp)
-  target_link_libraries(approx-xag PRIVATE lut-synth)
-
-  add_executable(bench-dc-resub tools/bench-dc-resub.cpp)
-  target_link_libraries(bench-dc-resub PRIVATE lut-synth)
+  # Verilog in, Verilog out: one binary per resynthesis method.
+  foreach(method anysyn narrow resubals)
+    add_executable(lut-resyn-${method} tools/lut-resyn-${method}.cpp)
+    target_link_libraries(lut-resyn-${method} PRIVATE lut-synth-command-line)
+  endforeach()
 endif()
 
 option(BUILD_TESTS "Build unit tests" ON)

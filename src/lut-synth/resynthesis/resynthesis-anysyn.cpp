@@ -8,8 +8,8 @@ namespace lut_synth {
 
 namespace {
 
-xag_network optimize_round_v3(xag_network xag,
-                               ResynthesisV3Params const &params,
+xag_network optimize_round(xag_network xag,
+                               AnySynParams const &params,
                                uint32_t cut_size,
                                xag_network const &original,
                                Deadline const &dl) {
@@ -31,11 +31,11 @@ xag_network optimize_round_v3(xag_network xag,
         xag = apply_cut_rewriting(xag, npn_resyn, crps);
 
         if (params.use_minmc_database) {
-            xag = apply_cut_rewriting_minmc_v3(xag, cut_size, params.use_dont_cares,
+            xag = apply_cut_rewriting_minmc(xag, cut_size, params.use_dont_cares,
                                                 params.cut_limit, false);
 
             if (params.allow_zero_gain && iter == 0) {
-                xag = apply_cut_rewriting_minmc_v3(xag, cut_size, params.use_dont_cares,
+                xag = apply_cut_rewriting_minmc(xag, cut_size, params.use_dont_cares,
                                                     params.cut_limit, true);
             }
         }
@@ -64,8 +64,8 @@ xag_network optimize_round_v3(xag_network xag,
 
 } // anonymous namespace
 
-ResynthesisResult resynthesize_xag_v3_with_report(xag_network const &ntk,
-                                                   ResynthesisV3Params const &params) {
+ResynthesisResult resynthesize_xag_anysyn_with_report(xag_network const &ntk,
+                                                   AnySynParams const &params) {
     Deadline total(params.timeout_s);
 
     ResynthesisResult result;
@@ -115,7 +115,7 @@ ResynthesisResult resynthesize_xag_v3_with_report(xag_network const &ntk,
             uint32_t cut_size_idx = round % params.minmc_cut_sizes.size();
             uint32_t cut_size = params.minmc_cut_sizes[cut_size_idx];
 
-            xag_network optimized = optimize_round_v3(candidate, params, cut_size, ntk, total);
+            xag_network optimized = optimize_round(candidate, params, cut_size, ntk, total);
             uint32_t opt_and = count_ands(optimized);
 
             state.update_if_better(std::move(optimized), opt_and);
@@ -139,9 +139,9 @@ ResynthesisResult resynthesize_xag_v3_with_report(xag_network const &ntk,
     return result;
 }
 
-xag_network resynthesize_xag_v3(xag_network const &ntk,
-                                 ResynthesisV3Params const &params) {
-    return resynthesize_xag_v3_with_report(ntk, params).xag;
+xag_network resynthesize_xag_anysyn(xag_network const &ntk,
+                                 AnySynParams const &params) {
+    return resynthesize_xag_anysyn_with_report(ntk, params).xag;
 }
 
 } // namespace lut_synth

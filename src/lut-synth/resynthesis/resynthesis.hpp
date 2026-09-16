@@ -20,8 +20,8 @@ struct ResynthesisResult {
     ResynthesisReportData report_data; /*!< Report data */
 };
 
-/*! \brief Parameters for v3 resynthesis focusing on downhill optimization. */
-struct ResynthesisV3Params {
+/*! \brief Parameters for AnySyn cost-generic resynthesis. */
+struct AnySynParams {
     double timeout_s{60.0};                           /*!< Total time budget */
     CostGenericResubParams resub_params{};            /*!< Base resubstitution params */
     uint32_t fast_max_divisors{50};                   /*!< Divisors for fast resub */
@@ -48,21 +48,21 @@ struct ResynthesisV3Params {
     DcAndRewriteParams dc_and_rewrite_params{};       /*!< ODC AND-rewrite knobs */
 };
 
-/*! \brief Resynthesize XAG using v3 algorithm with multi-pass optimization.
+/*! \brief Resynthesize XAG using AnySyn multi-pass optimization.
  *  \param xag Input XAG network
- *  \param params V3 resynthesis parameters
+ *  \param params AnySyn parameters
  *  \return Optimized XAG network
  */
-mockturtle::xag_network resynthesize_xag_v3(mockturtle::xag_network const &xag,
-                                             ResynthesisV3Params const &params = {});
+mockturtle::xag_network resynthesize_xag_anysyn(mockturtle::xag_network const &xag,
+                                             AnySynParams const &params = {});
 
-/*! \brief Resynthesize XAG using v3 algorithm and return report data.
+/*! \brief Resynthesize XAG using AnySyn and return report data.
  *  \param xag Input XAG network
- *  \param params V3 resynthesis parameters
+ *  \param params AnySyn parameters
  *  \return Result with optimized network and report
  */
-ResynthesisResult resynthesize_xag_v3_with_report(mockturtle::xag_network const &xag,
-                                                   ResynthesisV3Params const &params = {});
+ResynthesisResult resynthesize_xag_anysyn_with_report(mockturtle::xag_network const &xag,
+                                                   AnySynParams const &params = {});
 
 /*! \brief Rewrite XAG using multiplicative complexity cost. */
 mockturtle::xag_network rewrite_with_mc_cost(mockturtle::xag_network const &ntk);

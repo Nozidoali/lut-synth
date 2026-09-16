@@ -14,7 +14,7 @@ struct ResynthesisResult;
 /*! \brief Abstract base class for XAG resynthesis methods.
  *
  *  Provides a polymorphic interface for XAG network resynthesis.
- *  Concrete subclasses wrap individual resynthesis algorithms (v1, v3,
+ *  Concrete subclasses wrap individual resynthesis algorithms (anysyn,
  *  v5, v7) and are centrally registered so that methods can be selected
  *  by name at runtime.
  *

@@ -160,7 +160,7 @@ ResynthesisStepInfo make_step(uint32_t num, std::string const &type,
     return step;
 }
 
-xag_network apply_cut_rewriting_minmc_v3(xag_network const &xag,
+xag_network apply_cut_rewriting_minmc(xag_network const &xag,
                                           uint32_t cut_size,
                                           bool use_dont_cares,
                                           uint32_t cut_limit,

@@ -1,6 +1,6 @@
 #include "lut-synth/resynthesis/xag-resynthesizer.hpp"
 #include "lut-synth/resynthesis/resynthesis.hpp"
-#include "lut-synth/resynthesis/v3-resynthesizer.hpp"
+#include "lut-synth/resynthesis/anysyn-resynthesizer.hpp"
 
 #include <unordered_map>
 
@@ -24,8 +24,8 @@ void ensure_registered() {
         registry()[name] = std::move(f);
     };
 
-    reg("v3", [] { return std::make_unique<V3Resynthesizer>(); });
-    reg("", [] { return std::make_unique<V3Resynthesizer>(); });
+    reg("anysyn", [] { return std::make_unique<AnySynResynthesizer>(); });
+    reg("", [] { return std::make_unique<AnySynResynthesizer>(); });
 }
 
 } // namespace

@@ -109,4 +109,4 @@ Both approximation methods use the same set of error metrics:
 2. Apply ILP-based approximation (`approx-tt`) to flip output bits within an error budget
 3. Synthesize the approximated truth tables to an XAG network (`synth-tt`)
 4. Optionally apply ResubALS to further reduce AND gates within the remaining error budget
-5. Run resynthesis (V3) for exact optimization on top
+5. Run resynthesis (AnySyn) for exact optimization on top

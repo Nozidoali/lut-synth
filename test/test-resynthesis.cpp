@@ -31,7 +31,7 @@ TEST_CASE("resynthesis and count monotonic", "[resynthesis]") {
         xag_orig = mockturtle::cleanup_dangling(xag_orig);
         uint32_t orig_ands = count_ands(xag_orig);
 
-        auto xag_resyn = resynthesize_xag_v3(xag_orig);
+        auto xag_resyn = resynthesize_xag_anysyn(xag_orig);
         xag_resyn = mockturtle::cleanup_dangling(xag_resyn);
         uint32_t resyn_ands = count_ands(xag_resyn);
 
@@ -44,14 +44,14 @@ TEST_CASE("resynthesis and count monotonic", "[resynthesis]") {
 }
 
 TEST_CASE("resynthesis preserves function", "[resynthesis]") {
-    std::vector<std::string> methods = {"ss", "davio", "ac", "dsd"};
+    std::vector<std::string> methods = {"ss", "davio", "dsd"};
 
     for (auto const &method : methods) {
         kitty::dynamic_truth_table tt(4);
         kitty::create_from_hex_string(tt, "6996");
 
         auto xag_orig = synthesize_xag_network({tt}, method);
-        auto xag_resyn = resynthesize_xag_v3(xag_orig);
+        auto xag_resyn = resynthesize_xag_anysyn(xag_orig);
 
         auto result = check_equivalence(xag_orig, xag_resyn);
         CHECK(result.completed);
@@ -93,7 +93,7 @@ TEST_CASE("resynthesis with report", "[resynthesis]") {
     auto xag_orig = synthesize_xag_network({tt}, "ss");
     xag_orig = mockturtle::cleanup_dangling(xag_orig);
 
-    auto result = resynthesize_xag_v3_with_report(xag_orig);
+    auto result = resynthesize_xag_anysyn_with_report(xag_orig);
 
     CHECK(result.report_data.final_and_count <= result.report_data.initial_and_count);
     CHECK(result.report_data.num_inputs == xag_orig.num_pis());

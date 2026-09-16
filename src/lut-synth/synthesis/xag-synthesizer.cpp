@@ -1,9 +1,7 @@
 #include "lut-synth/synthesis/xag-synthesizer.hpp"
-#include "lut-synth/synthesis/ac-synthesizer.hpp"
 #include "lut-synth/synthesis/davio-synthesizer.hpp"
 #include "lut-synth/synthesis/dsd-synthesizer.hpp"
 #include "lut-synth/synthesis/exact-synthesizer.hpp"
-#include "lut-synth/synthesis/rmdds-synthesizer.hpp"
 #include "lut-synth/synthesis/ss-synthesizer.hpp"
 #include "lut-synth/truth-table.hpp"
 
@@ -12,21 +10,9 @@
 
 namespace lut_synth {
 
-mockturtle::xag_network synthesize_ac(std::vector<kitty::dynamic_truth_table> const &tts,
-                                      uint32_t max_lut_size);
 mockturtle::xag_network
 synthesize_positive_davio(std::vector<kitty::dynamic_truth_table> const &tts);
 mockturtle::xag_network synthesize_dsd(std::vector<kitty::dynamic_truth_table> const &tts);
-
-ACSynthesizer::ACSynthesizer(uint32_t max_lut_size) : max_lut_size_(max_lut_size) {}
-
-std::string ACSynthesizer::name() const { return "ac"; }
-
-mockturtle::xag_network
-ACSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
-    assert(max_lut_size_ > 0u);
-    return synthesize_ac(tts, max_lut_size_);
-}
 
 std::string DavioSynthesizer::name() const { return "davio"; }
 
@@ -52,16 +38,6 @@ ExactSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts)
     return synthesize_exact(tts, params_);
 }
 
-RMDDSSynthesizer::RMDDSSynthesizer(RMDDSParams const &params)
-    : params_(params) {}
-
-std::string RMDDSSynthesizer::name() const { return "rmdds"; }
-
-mockturtle::xag_network
-RMDDSSynthesizer::synthesize(std::vector<kitty::dynamic_truth_table> const &tts) const {
-    return synthesize_rmdds(tts, params_);
-}
-
 namespace {
 
 using Registry = std::unordered_map<std::string, XagSynthesizer::ParameterizedFactory>;
@@ -82,9 +58,6 @@ void ensure_registered() {
 
     reg("davio", [](SynthesisOptions const &) { return std::make_unique<DavioSynthesizer>(); });
     reg("positive_davio", [](SynthesisOptions const &) { return std::make_unique<DavioSynthesizer>(); });
-    reg("ac", [](SynthesisOptions const &opts) {
-        return std::make_unique<ACSynthesizer>(opts.ac_max_lut);
-    });
     reg("dsd", [](SynthesisOptions const &) { return std::make_unique<DSDSynthesizer>(); });
     reg("ss", [](SynthesisOptions const &opts) {
         return std::make_unique<SSSynthesizer>(opts.ss_k, opts.num_random_starts,
@@ -92,8 +65,6 @@ void ensure_registered() {
     });
     reg("exact", [](SynthesisOptions const &) { return std::make_unique<ExactSynthesizer>(); });
     reg("exact_mc", [](SynthesisOptions const &) { return std::make_unique<ExactSynthesizer>(); });
-    reg("rmdds", [](SynthesisOptions const &) { return std::make_unique<RMDDSSynthesizer>(); });
-    reg("rm", [](SynthesisOptions const &) { return std::make_unique<RMDDSSynthesizer>(); });
 }
 
 } // namespace

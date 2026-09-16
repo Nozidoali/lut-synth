@@ -20,8 +20,7 @@ std::string normalize_method(std::string_view method) {
 } // namespace
 
 mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_table> const &tts,
-                                               std::string_view method, uint32_t ac_max_lut,
-                                               int ss_k) {
+                                               std::string_view method, int ss_k) {
     assert(!tts.empty());
 
     std::string normalized = normalize_method(method);
@@ -30,7 +29,6 @@ mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_
     }
 
     SynthesisOptions opts;
-    opts.ac_max_lut = ac_max_lut;
     opts.ss_k = ss_k;
     std::unique_ptr<XagSynthesizer> synth = XagSynthesizer::create(normalized, opts);
     assert(synth && "unknown synthesis method");
@@ -38,8 +36,7 @@ mockturtle::xag_network synthesize_xag_network(std::vector<kitty::dynamic_truth_
 }
 
 mockturtle::xag_network synthesize_xag_network(TruthTable const &tt, std::string_view method,
-                                               uint32_t ac_max_lut, int ss_k,
-                                               bool disable_dont_care) {
+                                               int ss_k, bool disable_dont_care) {
     assert(!tt.empty());
 
     std::string normalized = normalize_method(method);
@@ -48,7 +45,6 @@ mockturtle::xag_network synthesize_xag_network(TruthTable const &tt, std::string
     }
 
     SynthesisOptions opts;
-    opts.ac_max_lut = ac_max_lut;
     opts.ss_k = ss_k;
     opts.disable_dont_care = disable_dont_care;
     std::unique_ptr<XagSynthesizer> synth = XagSynthesizer::create(normalized, opts);
